@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Masonry from 'react-masonry-css';
+import { motion, AnimatePresence } from 'framer-motion';
 import { usePhotos, useUploadPhoto, useDeletePhoto } from '../api/hooks';
 import { Lightbox } from './Lightbox';
 import { useAlertDialog } from '../components/ui/AlertDialog'; // Import custom alert hook
@@ -237,7 +238,14 @@ export function Gallery({ alias }) {
                     columnClassName="pl-4 bg-clip-padding"
                 >
                     {allPhotos.map((photo, index) => (
-                        <div key={photo.id} className="mb-4 relative group break-inside-avoid">
+                        <motion.div
+                            layoutId={photo.id}
+                            key={photo.id}
+                            className="mb-4 relative group break-inside-avoid"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.4, type: "spring" }} // Smooth Layout Transition
+                        >
                             <div
                                 className="rounded-sm overflow-hidden bg-neutral-100 transition-all duration-300 ease-out cursor-pointer hover:shadow-xl hover:shadow-neutral-900/10 hover:-translate-y-1 hover:brightness-[1.02]"
                                 onClick={() => setSelectedPhotoIndex(index)}
@@ -250,7 +258,7 @@ export function Gallery({ alias }) {
                                     className="w-full h-auto block select-none"
                                 />
                             </div>
-                        </div>
+                        </motion.div>
                     ))}
                 </Masonry>
             )}
