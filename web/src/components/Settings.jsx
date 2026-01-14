@@ -335,12 +335,12 @@ export function Settings() {
             key={alias.name}
             className={`group flex items-center justify-between py-3 px-4 hover:bg-neutral-100/50 transition-colors relative ${index !== total - 1 ? 'border-b border-neutral-100' : ''}`}
         >
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-sky-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-neutral-300 opacity-0 group-hover:opacity-100 transition-opacity" />
 
             <div className="flex-1 min-w-0 pl-2">
                 <div className="font-medium text-neutral-900 text-sm flex items-center gap-2">
                     {alias.name}
-                    <span className="text-[10px] bg-sky-100 text-sky-600 px-1.5 py-0.5 rounded-md font-semibold">S3</span>
+                    <span className="text-[10px] bg-brand-100 text-brand-600 px-1.5 py-0.5 rounded-md font-semibold">S3</span>
                 </div>
                 <div className="text-[11px] text-neutral-400 font-mono mt-0.5 truncate">
                     {alias.endpoint}/{alias.bucket}{alias.path ? '/' + alias.path : ''}
@@ -350,7 +350,7 @@ export function Settings() {
             <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                     onClick={() => startEditingS3(alias)}
-                    className="text-neutral-400 hover:text-sky-600 p-1.5 rounded transition-colors"
+                    className="text-neutral-400 hover:text-brand-600 p-1.5 rounded transition-colors"
                     title="编辑"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
@@ -391,35 +391,35 @@ export function Settings() {
                                 <div className="flex gap-3">
                                     <div className="flex-1">
                                         <label className="block text-xs text-neutral-500 mb-1">名称</label>
-                                        <input type="text" value={editS3Name} onChange={e => setEditS3Name(e.target.value)} className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:border-sky-500 focus:bg-white focus:ring-1 focus:ring-sky-500 focus:outline-none transition-all" />
+                                        <input type="text" value={editS3Name} onChange={e => setEditS3Name(e.target.value)} className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
                                     </div>
                                     <div className="flex-1">
                                         <label className="block text-xs text-neutral-500 mb-1">Bucket</label>
-                                        <input type="text" value={editS3Bucket} onChange={e => setEditS3Bucket(e.target.value)} className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm font-mono focus:border-sky-500 focus:bg-white focus:ring-1 focus:ring-sky-500 focus:outline-none transition-all" />
+                                        <input type="text" value={editS3Bucket} onChange={e => setEditS3Bucket(e.target.value)} className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm font-mono focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-xs text-neutral-500 mb-1">Endpoint</label>
-                                    <input type="text" value={editS3Endpoint} onChange={e => setEditS3Endpoint(e.target.value)} className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm font-mono focus:border-sky-500 focus:bg-white focus:ring-1 focus:ring-sky-500 focus:outline-none transition-all" />
+                                    <input type="text" value={editS3Endpoint} onChange={e => setEditS3Endpoint(e.target.value)} className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm font-mono focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
                                 </div>
                                 <div className="flex gap-3">
                                     <div className="flex-1">
                                         <label className="block text-xs text-neutral-500 mb-1">Access Key</label>
-                                        <input type="text" value={editS3AccessKey} onChange={e => setEditS3AccessKey(e.target.value)} className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm font-mono focus:border-sky-500 focus:bg-white focus:ring-1 focus:ring-sky-500 focus:outline-none transition-all" />
+                                        <input type="text" value={editS3AccessKey} onChange={e => setEditS3AccessKey(e.target.value)} className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm font-mono focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
                                     </div>
                                     <div className="flex-1">
                                         <label className="block text-xs text-neutral-500 mb-1">Secret Key</label>
-                                        <input type="password" value={editS3SecretKey} onChange={e => setEditS3SecretKey(e.target.value)} className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm font-mono focus:border-sky-500 focus:bg-white focus:ring-1 focus:ring-sky-500 focus:outline-none transition-all" />
+                                        <input type="password" value={editS3SecretKey} onChange={e => setEditS3SecretKey(e.target.value)} className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm font-mono focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
                                     </div>
                                 </div>
                                 <div className="flex gap-3">
                                     <div className="flex-1">
                                         <label className="block text-xs text-neutral-500 mb-1">Region (可选)</label>
-                                        <input type="text" value={editS3Region} onChange={e => setEditS3Region(e.target.value)} className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:border-sky-500 focus:bg-white focus:ring-1 focus:ring-sky-500 focus:outline-none transition-all" />
+                                        <input type="text" value={editS3Region} onChange={e => setEditS3Region(e.target.value)} className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
                                     </div>
                                     <div className="flex-1">
                                         <label className="block text-xs text-neutral-500 mb-1">前缀 (可选)</label>
-                                        <input type="text" value={editS3Prefix} onChange={e => setEditS3Prefix(e.target.value)} className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm font-mono focus:border-sky-500 focus:bg-white focus:ring-1 focus:ring-sky-500 focus:outline-none transition-all" />
+                                        <input type="text" value={editS3Prefix} onChange={e => setEditS3Prefix(e.target.value)} className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm font-mono focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
                                     </div>
                                 </div>
                             </div>
@@ -427,10 +427,10 @@ export function Settings() {
                                 <button
                                     onClick={handleTestS3Edit}
                                     disabled={isTestingEdit || !editS3Endpoint || !editS3Bucket || !editS3AccessKey || !editS3SecretKey}
-                                    className="px-4 py-2 text-sm font-medium text-sky-600 hover:text-sky-700 hover:bg-sky-50 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                                    className="px-4 py-2 text-sm font-medium text-brand-600 hover:text-brand-700 hover:bg-brand-50 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
                                 >
                                     {isTestingEdit ? (
-                                        <><span className="w-4 h-4 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></span> 测试中...</>
+                                        <><span className="w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></span> 测试中...</>
                                     ) : (
                                         <><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> 测试连接</>
                                     )}
@@ -445,7 +445,7 @@ export function Settings() {
                                     <button
                                         onClick={handleSaveS3Edit}
                                         disabled={isSavingS3}
-                                        className="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors disabled:opacity-50"
+                                        className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors disabled:opacity-50"
                                     >
                                         {isSavingS3 ? '保存中...' : '保存'}
                                     </button>
@@ -544,7 +544,7 @@ export function Settings() {
                         !showS3Form && (
                             <button
                                 onClick={() => setShowS3Form(true)}
-                                className="text-xs text-sky-600 hover:text-sky-700 font-medium flex items-center gap-1 transition-colors"
+                                className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1 transition-colors"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                             </button>
@@ -567,27 +567,27 @@ export function Settings() {
                             >
                                 <div className="p-4 bg-white border-b border-neutral-100 space-y-3">
                                     <div className="flex gap-3">
-                                        <input type="text" value={s3Name} onChange={e => setS3Name(e.target.value)} placeholder="相册名称" autoFocus className="flex-1 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm placeholder-neutral-400 focus:border-sky-500 focus:bg-white focus:ring-1 focus:ring-sky-500 focus:outline-none transition-all" />
-                                        <input type="text" value={s3Bucket} onChange={e => setS3Bucket(e.target.value)} placeholder="Bucket 名称" className="flex-1 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm placeholder-neutral-400 font-mono focus:border-sky-500 focus:bg-white focus:ring-1 focus:ring-sky-500 focus:outline-none transition-all" />
+                                        <input type="text" value={s3Name} onChange={e => setS3Name(e.target.value)} placeholder="相册名称" autoFocus className="flex-1 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm placeholder-neutral-400 focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
+                                        <input type="text" value={s3Bucket} onChange={e => setS3Bucket(e.target.value)} placeholder="Bucket 名称" className="flex-1 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm placeholder-neutral-400 font-mono focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
                                     </div>
-                                    <input type="text" value={s3Endpoint} onChange={e => setS3Endpoint(e.target.value)} placeholder="Endpoint (例如: https://s3.amazonaws.com)" className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm placeholder-neutral-400 font-mono focus:border-sky-500 focus:bg-white focus:ring-1 focus:ring-sky-500 focus:outline-none transition-all" />
+                                    <input type="text" value={s3Endpoint} onChange={e => setS3Endpoint(e.target.value)} placeholder="Endpoint (例如: https://s3.amazonaws.com)" className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm placeholder-neutral-400 font-mono focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
                                     <div className="flex gap-3">
-                                        <input type="text" value={s3AccessKey} onChange={e => setS3AccessKey(e.target.value)} placeholder="Access Key" className="flex-1 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm placeholder-neutral-400 font-mono focus:border-sky-500 focus:bg-white focus:ring-1 focus:ring-sky-500 focus:outline-none transition-all" />
-                                        <input type="password" value={s3SecretKey} onChange={e => setS3SecretKey(e.target.value)} placeholder="Secret Key" className="flex-1 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm placeholder-neutral-400 font-mono focus:border-sky-500 focus:bg-white focus:ring-1 focus:ring-sky-500 focus:outline-none transition-all" />
+                                        <input type="text" value={s3AccessKey} onChange={e => setS3AccessKey(e.target.value)} placeholder="Access Key" className="flex-1 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm placeholder-neutral-400 font-mono focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
+                                        <input type="password" value={s3SecretKey} onChange={e => setS3SecretKey(e.target.value)} placeholder="Secret Key" className="flex-1 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm placeholder-neutral-400 font-mono focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
                                     </div>
                                     <div className="flex gap-3">
-                                        <input type="text" value={s3Region} onChange={e => setS3Region(e.target.value)} placeholder="Region (可选)" className="flex-1 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm placeholder-neutral-400 focus:border-sky-500 focus:bg-white focus:ring-1 focus:ring-sky-500 focus:outline-none transition-all" />
-                                        <input type="text" value={s3Prefix} onChange={e => setS3Prefix(e.target.value)} placeholder="前缀/文件夹 (可选)" className="flex-1 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm placeholder-neutral-400 font-mono focus:border-sky-500 focus:bg-white focus:ring-1 focus:ring-sky-500 focus:outline-none transition-all" />
+                                        <input type="text" value={s3Region} onChange={e => setS3Region(e.target.value)} placeholder="Region (可选)" className="flex-1 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm placeholder-neutral-400 focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
+                                        <input type="text" value={s3Prefix} onChange={e => setS3Prefix(e.target.value)} placeholder="前缀/文件夹 (可选)" className="flex-1 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm placeholder-neutral-400 font-mono focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500 focus:outline-none transition-all" />
                                     </div>
                                     <div className="flex items-center justify-between pt-2">
                                         <button
                                             type="button"
                                             onClick={() => handleTestS3({ endpoint: s3Endpoint, bucket: s3Bucket, access_key: s3AccessKey, secret_key: s3SecretKey, region: s3Region })}
                                             disabled={isTesting || !s3Endpoint || !s3Bucket || !s3AccessKey || !s3SecretKey}
-                                            className="px-3 py-1.5 text-sm font-medium text-sky-600 hover:text-sky-700 hover:bg-sky-50 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                                            className="px-3 py-1.5 text-sm font-medium text-brand-600 hover:text-brand-700 hover:bg-brand-50 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
                                         >
                                             {isTesting ? (
-                                                <><span className="w-3 h-3 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></span> 测试中...</>
+                                                <><span className="w-3 h-3 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></span> 测试中...</>
                                             ) : (
                                                 <><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> 测试</>
                                             )}
@@ -603,7 +603,7 @@ export function Settings() {
                                             <button
                                                 type="submit"
                                                 disabled={isAddingS3 || !s3Name || !s3Endpoint || !s3Bucket || !s3AccessKey || !s3SecretKey}
-                                                className="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                                className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                             >
                                                 {isAddingS3 ? '连接中...' : '添加'}
                                             </button>
