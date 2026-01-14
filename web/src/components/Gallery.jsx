@@ -126,7 +126,7 @@ export function Gallery({ alias }) {
     if (status === 'pending') return <div className="flex justify-center h-64 text-neutral-300 animate-pulse mt-12">Loading...</div>;
     if (status === 'error') return <div className="flex justify-center h-64 text-red-500 mt-12">Failed to load.</div>;
 
-    const allPhotos = data?.pages.flatMap((page) => page.photos) || [];
+    const allPhotos = data?.pages?.flatMap((page) => page.photos ?? []) ?? [];
 
     const handleClose = () => setSelectedPhotoIndex(null);
     const handleNext = () => setSelectedPhotoIndex((prev) => (prev + 1 < allPhotos.length ? prev + 1 : prev));
@@ -227,8 +227,12 @@ export function Gallery({ alias }) {
             </div>
 
             {allPhotos.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-[60vh] text-neutral-300 border-2 border-dashed border-neutral-100 rounded-3xl">
-                    <p className="mb-2 text-xl font-medium text-neutral-400">暂无照片</p>
+                <div className="flex flex-col items-center justify-center h-[60vh] text-neutral-300 border-2 border-dashed border-neutral-200 rounded-3xl bg-neutral-50/30">
+                    <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mb-4 text-neutral-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                    </div>
+                    <p className="mb-2 text-lg font-medium text-neutral-400">暂无照片</p>
+                    <p className="text-sm text-neutral-400">拖放图片到此处上传</p>
                 </div>
             ) : (
                 <Masonry
