@@ -111,23 +111,64 @@ function AppContent() {
       <main
         className="flex-1 h-screen overflow-hidden relative bg-white"
         onMouseMove={(e) => {
-          // Simple logic to add a class to the active scroll container for visibility
           const container = e.currentTarget.querySelector('.custom-scrollbar');
-          if (container) {
-            container.classList.add('scrollbar-active');
+          if (!container) return;
 
-            // Clear existing timeout
-            if (container.dataset.timeoutId) {
-              clearTimeout(parseInt(container.dataset.timeoutId));
-            }
+          // Set target opacity to visible
+          container.dataset.targetOpacity = '0.5';
 
-            // Set new timeout to remove class
-            const timeoutId = setTimeout(() => {
-              container.classList.remove('scrollbar-active');
-            }, 1000); // 1 second delay before fading out
+          // Start animation if not already running
+          if (!container.dataset.animating) {
+            container.dataset.animating = 'true';
+            const animate = () => {
+              const current = parseFloat(container.style.getPropertyValue('--scrollbar-opacity') || '0');
+              const target = parseFloat(container.dataset.targetOpacity || '0');
+              const diff = target - current;
 
-            container.dataset.timeoutId = timeoutId.toString();
+              if (Math.abs(diff) < 0.01) {
+                container.style.setProperty('--scrollbar-opacity', target.toString());
+                container.dataset.animating = '';
+                return;
+              }
+
+              // Ease towards target
+              const next = current + diff * 0.15;
+              container.style.setProperty('--scrollbar-opacity', next.toString());
+              requestAnimationFrame(animate);
+            };
+            requestAnimationFrame(animate);
           }
+
+          // Clear existing fade-out timeout
+          if (container.dataset.timeoutId) {
+            clearTimeout(parseInt(container.dataset.timeoutId));
+          }
+
+          // Set timeout to fade out
+          const timeoutId = setTimeout(() => {
+            container.dataset.targetOpacity = '0';
+            if (!container.dataset.animating) {
+              container.dataset.animating = 'true';
+              const animateOut = () => {
+                const current = parseFloat(container.style.getPropertyValue('--scrollbar-opacity') || '0.5');
+                const target = parseFloat(container.dataset.targetOpacity || '0');
+                const diff = target - current;
+
+                if (Math.abs(diff) < 0.01) {
+                  container.style.setProperty('--scrollbar-opacity', target.toString());
+                  container.dataset.animating = '';
+                  return;
+                }
+
+                const next = current + diff * 0.08; // Slower fade out
+                container.style.setProperty('--scrollbar-opacity', next.toString());
+                requestAnimationFrame(animateOut);
+              };
+              requestAnimationFrame(animateOut);
+            }
+          }, 1000);
+
+          container.dataset.timeoutId = timeoutId.toString();
         }}
       >
         <AnimatePresence mode="wait">

@@ -274,14 +274,17 @@ export function Gallery({ alias }) {
                 </div>
             )}
 
-            {selectedPhotoIndex !== null && (
-                <Lightbox
-                    photo={{ ...allPhotos[selectedPhotoIndex], alias }}
-                    onClose={handleClose}
-                    onNext={handleNext}
-                    onPrev={handlePrev}
-                />
-            )}
+            {/* Lightbox with AnimatePresence for exit animation */}
+            <AnimatePresence>
+                {selectedPhotoIndex !== null && (
+                    <Lightbox
+                        photo={{ ...allPhotos[selectedPhotoIndex], alias }}
+                        onClose={handleClose}
+                        onNext={handleNext}
+                        onPrev={handlePrev}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 }
