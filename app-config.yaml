@@ -9,3 +9,10 @@ aliases:
     - name: 空白测试
       type: local
       path: ./photos/empty
+    - name: R2
+      type: s3
+      path: peinture/
+      bucket: ai-image
+      endpoint: https://990167ac4a14195a4fef82fd8658735c.r2.cloudflarestorage.com
+      access_key: 1a874f0d61e773282e1d0de3c2280160
+      secret_key: 69b22dba8c696f7cbd6cbd9a1de448eba9f36ef2aa64d297b7ac163632b2e8ab

@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"photomato/internal/config"
 	"photomato/internal/provider"
@@ -40,6 +41,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /api/v1/alias", h.handleUpdateAlias)
 	mux.HandleFunc("DELETE /api/v1/alias", h.handleDeleteAlias)
 	mux.HandleFunc("POST /api/v1/cache/clear", h.handleClearCache)
+	mux.HandleFunc("POST /api/v1/s3/test", h.handleTestS3Connection)
 }
 
 func (h *Handler) handleGetAliases(w http.ResponseWriter, r *http.Request) {
@@ -57,22 +59,19 @@ func (h *Handler) handleServeFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// For local provider, we get the absolute path and serve it
-	// For S3, we would redirect to the presigned URL
-	
 	originalURL, err := p.GetOriginalURL(path)
 	if err != nil {
 		http.Error(w, "File not found", http.StatusNotFound)
 		return
 	}
 
-	// If it's a URL (S3), redirect
-	// If it's a path (Local), serve it
-	// Simple heuristic: check if starts with http
-	// In production code verify interface type or use specific method
-	
-	// Since LocalProvider returns absolute path:
-	http.ServeFile(w, r, originalURL)
+	// If it's a URL (S3 presigned), redirect to it
+	// If it's a path (Local filesystem), serve it directly
+	if strings.HasPrefix(originalURL, "http://") || strings.HasPrefix(originalURL, "https://") {
+		http.Redirect(w, r, originalURL, http.StatusTemporaryRedirect)
+	} else {
+		http.ServeFile(w, r, originalURL)
+	}
 }
 
 func (h *Handler) handleGetThumbnail(w http.ResponseWriter, r *http.Request) {
@@ -200,8 +199,8 @@ func (h *Handler) handleAddAlias(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Name == "" || req.Type == "" || req.Path == "" {
-		http.Error(w, "Missing required fields (name, type, path)", http.StatusBadRequest)
+	if req.Name == "" || req.Type == "" {
+		http.Error(w, "Missing required fields (name, type)", http.StatusBadRequest)
 		return
 	}
 
@@ -213,16 +212,44 @@ func (h *Handler) handleAddAlias(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Create provider immediately to verify path
+	// Create provider immediately to verify configuration
 	if req.Type == config.AliasTypeLocal {
+		if req.Path == "" {
+			http.Error(w, "Missing path for local alias", http.StatusBadRequest)
+			return
+		}
 		p, err := provider.NewLocalProvider(req.Path)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Invalid path: %v", err), http.StatusBadRequest)
 			return
 		}
 		h.Providers[req.Name] = p
+	} else if req.Type == config.AliasTypeS3 {
+		if req.Bucket == "" || req.Endpoint == "" || req.AccessKey == "" || req.SecretKey == "" {
+			http.Error(w, "Missing required S3 fields (bucket, endpoint, access_key, secret_key)", http.StatusBadRequest)
+			return
+		}
+		// Determine SSL usage from endpoint
+		useSSL := strings.HasPrefix(req.Endpoint, "https://")
+		endpoint := strings.TrimPrefix(strings.TrimPrefix(req.Endpoint, "https://"), "http://")
+		
+		p, err := provider.NewS3Provider(provider.S3ProviderConfig{
+			Endpoint:  endpoint,
+			AccessKey: req.AccessKey,
+			SecretKey: req.SecretKey,
+			UseSSL:    useSSL,
+			Bucket:    req.Bucket,
+			Prefix:    req.Path, // Path is used as prefix for S3
+			Region:    req.Region,
+		})
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Invalid S3 configuration: %v", err), http.StatusBadRequest)
+			return
+		}
+		h.Providers[req.Name] = p
 	} else {
-		// TODO: S3 verification
+		http.Error(w, "Unknown alias type", http.StatusBadRequest)
+		return
 	}
 
 	h.Config.Aliases = append(h.Config.Aliases, req)
@@ -243,8 +270,14 @@ func (h *Handler) handleUpdateAlias(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		OldName string `json:"old_name"`
-		NewName string `json:"new_name"`
+		OldName   string `json:"old_name"`
+		NewName   string `json:"new_name"`
+		Path      string `json:"path,omitempty"`
+		Bucket    string `json:"bucket,omitempty"`
+		Endpoint  string `json:"endpoint,omitempty"`
+		Region    string `json:"region,omitempty"`
+		AccessKey string `json:"access_key,omitempty"`
+		SecretKey string `json:"secret_key,omitempty"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -257,24 +290,24 @@ func (h *Handler) handleUpdateAlias(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if new name exists
-	for _, a := range h.Config.Aliases {
-		if a.Name == req.NewName {
-			http.Error(w, "New alias name already exists", http.StatusConflict)
-			return
+	// Check if new name conflicts (except if same as old)
+	if req.OldName != req.NewName {
+		for _, a := range h.Config.Aliases {
+			if a.Name == req.NewName {
+				http.Error(w, "New alias name already exists", http.StatusConflict)
+				return
+			}
 		}
 	}
 
 	// Find and update
 	found := false
+	var oldAlias config.Alias
+	var aliasIndex int
 	for i, a := range h.Config.Aliases {
 		if a.Name == req.OldName {
-			h.Config.Aliases[i].Name = req.NewName
-			// Update Provider Map
-			if p, ok := h.Providers[req.OldName]; ok {
-				h.Providers[req.NewName] = p
-				delete(h.Providers, req.OldName)
-			}
+			oldAlias = a
+			aliasIndex = i
 			found = true
 			break
 		}
@@ -285,6 +318,65 @@ func (h *Handler) handleUpdateAlias(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Update fields
+	h.Config.Aliases[aliasIndex].Name = req.NewName
+	if req.Path != "" || oldAlias.Type == config.AliasTypeLocal {
+		h.Config.Aliases[aliasIndex].Path = req.Path
+	}
+	if oldAlias.Type == config.AliasTypeS3 {
+		if req.Bucket != "" {
+			h.Config.Aliases[aliasIndex].Bucket = req.Bucket
+		}
+		if req.Endpoint != "" {
+			h.Config.Aliases[aliasIndex].Endpoint = req.Endpoint
+		}
+		if req.Region != "" {
+			h.Config.Aliases[aliasIndex].Region = req.Region
+		}
+		if req.AccessKey != "" {
+			h.Config.Aliases[aliasIndex].AccessKey = req.AccessKey
+		}
+		if req.SecretKey != "" {
+			h.Config.Aliases[aliasIndex].SecretKey = req.SecretKey
+		}
+
+		// Re-create S3 provider with new settings
+		updatedAlias := h.Config.Aliases[aliasIndex]
+		useSSL := strings.HasPrefix(updatedAlias.Endpoint, "https://")
+		endpoint := strings.TrimPrefix(strings.TrimPrefix(updatedAlias.Endpoint, "https://"), "http://")
+
+		p, err := provider.NewS3Provider(provider.S3ProviderConfig{
+			Endpoint:  endpoint,
+			AccessKey: updatedAlias.AccessKey,
+			SecretKey: updatedAlias.SecretKey,
+			UseSSL:    useSSL,
+			Bucket:    updatedAlias.Bucket,
+			Prefix:    updatedAlias.Path,
+			Region:    updatedAlias.Region,
+		})
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Invalid S3 configuration: %v", err), http.StatusBadRequest)
+			return
+		}
+		delete(h.Providers, req.OldName)
+		h.Providers[req.NewName] = p
+	} else if oldAlias.Type == config.AliasTypeLocal {
+		// Re-create local provider
+		p, err := provider.NewLocalProvider(h.Config.Aliases[aliasIndex].Path)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Invalid path: %v", err), http.StatusBadRequest)
+			return
+		}
+		delete(h.Providers, req.OldName)
+		h.Providers[req.NewName] = p
+	} else {
+		// Just update provider map key
+		if p, ok := h.Providers[req.OldName]; ok {
+			h.Providers[req.NewName] = p
+			delete(h.Providers, req.OldName)
+		}
+	}
+
 	if err := h.Config.Save("app-config.yaml"); err != nil {
 		log.Printf("Failed to save config: %v", err)
 		http.Error(w, "Failed to persist config", http.StatusInternalServerError)
@@ -292,7 +384,7 @@ func (h *Handler) handleUpdateAlias(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "updated"})
+	json.NewEncoder(w).Encode(h.Config.Aliases[aliasIndex])
 }
 
 func (h *Handler) handleDeleteAlias(w http.ResponseWriter, r *http.Request) {
@@ -380,4 +472,59 @@ func (h *Handler) handleGetPhotos(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+// handleTestS3Connection tests S3 connection without saving
+func (h *Handler) handleTestS3Connection(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Endpoint  string `json:"endpoint"`
+		Bucket    string `json:"bucket"`
+		AccessKey string `json:"access_key"`
+		SecretKey string `json:"secret_key"`
+		Region    string `json:"region"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Endpoint == "" || req.Bucket == "" || req.AccessKey == "" || req.SecretKey == "" {
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	// Parse endpoint
+	useSSL := strings.HasPrefix(req.Endpoint, "https://")
+	endpoint := strings.TrimPrefix(strings.TrimPrefix(req.Endpoint, "https://"), "http://")
+
+	// Try to create S3 provider (this verifies the bucket exists)
+	_, err := provider.NewS3Provider(provider.S3ProviderConfig{
+		Endpoint:  endpoint,
+		AccessKey: req.AccessKey,
+		SecretKey: req.SecretKey,
+		UseSSL:    useSSL,
+		Bucket:    req.Bucket,
+		Region:    req.Region,
+	})
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "连接成功",
+	})
 }

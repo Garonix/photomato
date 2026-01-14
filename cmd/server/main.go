@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"photomato/internal/api"
 	"photomato/internal/config"
@@ -22,7 +23,11 @@ func main() {
 
 	fmt.Printf("Photomato started on port %d with %d aliases\n", cfg.Port, len(cfg.Aliases))
 	for _, a := range cfg.Aliases {
-		fmt.Printf("- [%s] %s (%s)\n", a.Type, a.Name, a.Path)
+		if a.Type == config.AliasTypeLocal {
+			fmt.Printf("- [%s] %s (%s)\n", a.Type, a.Name, a.Path)
+		} else {
+			fmt.Printf("- [%s] %s (%s/%s)\n", a.Type, a.Name, a.Endpoint, a.Bucket)
+		}
 	}
 
 	// Initialize Providers
@@ -37,8 +42,24 @@ func main() {
 			}
 			providers[alias.Name] = p
 		case config.AliasTypeS3:
-			log.Printf("S3 provider not yet implemented for '%s'", alias.Name)
-			// TODO: S3 implementation
+			useSSL := strings.HasPrefix(alias.Endpoint, "https://")
+			endpoint := strings.TrimPrefix(strings.TrimPrefix(alias.Endpoint, "https://"), "http://")
+			
+			p, err := provider.NewS3Provider(provider.S3ProviderConfig{
+				Endpoint:  endpoint,
+				AccessKey: alias.AccessKey,
+				SecretKey: alias.SecretKey,
+				UseSSL:    useSSL,
+				Bucket:    alias.Bucket,
+				Prefix:    alias.Path, // Path is used as prefix
+				Region:    alias.Region,
+			})
+			if err != nil {
+				log.Printf("Failed to create S3 provider for '%s': %v", alias.Name, err)
+				continue
+			}
+			providers[alias.Name] = p
+			log.Printf("S3 provider '%s' connected to %s/%s", alias.Name, alias.Endpoint, alias.Bucket)
 		}
 	}
 

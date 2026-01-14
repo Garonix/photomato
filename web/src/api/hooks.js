@@ -74,11 +74,22 @@ export const useAddAlias = () => {
     });
 };
 
+// Support full alias editing (not just name)
 export const useUpdateAlias = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async ({ oldName, newName }) => {
-            await apiClient.put('/alias', { old_name: oldName, new_name: newName });
+        mutationFn: async (updateData) => {
+            // updateData: { oldName, newName, path?, bucket?, endpoint?, region?, access_key?, secret_key? }
+            await apiClient.put('/alias', {
+                old_name: updateData.oldName,
+                new_name: updateData.newName,
+                path: updateData.path,
+                bucket: updateData.bucket,
+                endpoint: updateData.endpoint,
+                region: updateData.region,
+                access_key: updateData.access_key,
+                secret_key: updateData.secret_key,
+            });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['aliases'] });
@@ -102,6 +113,22 @@ export const useClearCache = () => {
     return useMutation({
         mutationFn: async () => {
             await apiClient.post('/cache/clear');
+        }
+    });
+};
+
+// Test S3 connection without saving
+export const useTestS3Connection = () => {
+    return useMutation({
+        mutationFn: async (config) => {
+            const { data } = await apiClient.post('/s3/test', {
+                endpoint: config.endpoint,
+                bucket: config.bucket,
+                access_key: config.access_key,
+                secret_key: config.secret_key,
+                region: config.region,
+            });
+            return data;
         }
     });
 };
