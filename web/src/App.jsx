@@ -108,7 +108,28 @@ function AppContent() {
       </motion.aside>
 
       {/* Main Content */}
-      <main className="flex-1 h-screen overflow-hidden relative bg-white">
+      <main
+        className="flex-1 h-screen overflow-hidden relative bg-white"
+        onMouseMove={(e) => {
+          // Simple logic to add a class to the active scroll container for visibility
+          const container = e.currentTarget.querySelector('.custom-scrollbar');
+          if (container) {
+            container.classList.add('scrollbar-active');
+
+            // Clear existing timeout
+            if (container.dataset.timeoutId) {
+              clearTimeout(parseInt(container.dataset.timeoutId));
+            }
+
+            // Set new timeout to remove class
+            const timeoutId = setTimeout(() => {
+              container.classList.remove('scrollbar-active');
+            }, 1000); // 1 second delay before fading out
+
+            container.dataset.timeoutId = timeoutId.toString();
+          }
+        }}
+      >
         <AnimatePresence mode="wait">
           {view === 'settings' ? (
             <motion.div

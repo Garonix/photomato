@@ -43,14 +43,23 @@ export function Lightbox({ photo, onClose, onNext, onPrev }) {
     if (!photo) return null;
 
     const handleZoomIn = (e) => {
-        e.stopPropagation();
+        if (e) e.stopPropagation();
         setScale(p => Math.min(p + 0.5, 4));
     }
 
     const handleZoomOut = (e) => {
-        e.stopPropagation();
+        if (e) e.stopPropagation();
         setScale(p => Math.max(p - 0.5, 0.5));
     }
+
+    const handleWheel = (e) => {
+        // e.deltaY < 0 is scrolling up (zoom in)
+        if (e.deltaY < 0) {
+            handleZoomIn();
+        } else {
+            handleZoomOut();
+        }
+    };
 
     return (
         <AnimatePresence>
@@ -58,8 +67,9 @@ export function Lightbox({ photo, onClose, onNext, onPrev }) {
                 initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
                 animate={{ opacity: 1, backdropFilter: "blur(8px)" }}
                 exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
-                className="fixed inset-0 z-50 bg-white/80 flex flex-col items-center justify-center p-4 cursor-zoom-out"
+                className="fixed inset-0 z-50 bg-white/80 flex flex-col items-center justify-center p-4 cursor-default"
                 onClick={onClose}
+                onWheel={handleWheel}
             >
                 {/* Zoom Controls (Auto-Hide) */}
                 <AnimatePresence>
@@ -92,7 +102,7 @@ export function Lightbox({ photo, onClose, onNext, onPrev }) {
                     src={`/api/v1/file?alias=${encodeURIComponent(photo.alias)}&path=${encodeURIComponent(photo.path)}`}
                     alt={photo.name}
                     style={{ maxHeight: 'calc(100vh - 80px)', maxWidth: 'calc(100vw - 40px)' }}
-                    className="object-contain shadow-2xl rounded-sm cursor-grab active:cursor-grabbing"
+                    className="object-contain shadow-2xl rounded-sm"
                     onClick={(e) => {
                         e.stopPropagation();
                     }}

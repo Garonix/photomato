@@ -112,8 +112,7 @@ export function Settings() {
 
             <div className="mb-12">
                 <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold text-neutral-800">本地相册 (Local Libraries)</h2>
-                    <span className="text-xs text-neutral-400 bg-neutral-100 px-3 py-1 rounded-full">Local Filesystem</span>
+                    <h2 className="text-xl font-semibold text-neutral-800">本地相册</h2>
                 </div>
 
                 <div className="bg-white rounded-xl p-8 border border-neutral-200 shadow-sm">
@@ -209,10 +208,20 @@ export function Settings() {
                 </div>
             </div>
 
+            {/* S3 Placeholder */}
+            <div className="opacity-60 grayscale filter mb-12">
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-neutral-400">云存储</h2>
+                </div>
+                <div className="bg-white rounded-xl p-8 border border-neutral-200 border-dashed">
+                    <p className="text-neutral-400 text-center">AWS S3 和 MinIO 支持正在开发中。</p>
+                </div>
+            </div>
+
             {/* System Actions */}
             <div className="mb-12">
                 <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold text-neutral-800">系统维护 (Maintenance)</h2>
+                    <h2 className="text-xl font-semibold text-neutral-800">系统维护</h2>
                 </div>
 
                 <div className="bg-white rounded-xl p-8 border border-neutral-200 shadow-sm flex items-center justify-between">
@@ -228,17 +237,6 @@ export function Settings() {
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                         {isClearing ? '正在清空...' : '清空缓存'}
                     </button>
-                </div>
-            </div>
-
-            {/* S3 Placeholder */}
-            <div className="opacity-60 grayscale filter">
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold text-neutral-400">云存储 (Cloud Storage)</h2>
-                    <span className="text-xs text-neutral-400 bg-neutral-100 px-3 py-1 rounded-full">S3 / MinIO</span>
-                </div>
-                <div className="bg-white rounded-xl p-8 border border-neutral-200 border-dashed">
-                    <p className="text-neutral-400 text-center">AWS S3 和 MinIO 支持正在开发中。</p>
                 </div>
             </div>
         </div>

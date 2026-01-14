@@ -37,9 +37,10 @@ body {
   transition: background-color 0.3s;
 }
 
-.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+.custom-scrollbar:hover::-webkit-scrollbar-thumb,
+.custom-scrollbar.scrollbar-active::-webkit-scrollbar-thumb {
   background-color: rgba(156, 163, 175, 0.5);
-  /* Visible on hover */
+  /* Visible on hover or when active */
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {

@@ -202,7 +202,6 @@ export function Gallery({ alias }) {
 
 
             <div className="flex items-center justify-between mb-8">
-                <h2 className="text-3xl font-bold text-neutral-900 tracking-tight select-none">{alias}</h2>
                 <div className="flex items-center gap-4">
                     {/* Integrated Density Slider */}
                     <div className="flex items-center gap-2 group p-1 pr-0 rounded-full hover:bg-neutral-50 hover:shadow-sm border border-transparent hover:border-neutral-100 transition-all">
