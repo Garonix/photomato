@@ -28,9 +28,28 @@ export function Gallery({ alias }) {
     const [contextMenu, setContextMenu] = useState(null);
 
     // Density State (1 = Normal, 0.5 = Sparse, 2 = Dense)
-    // Slider range: 0 to 100.
-    const [density, setDensity] = useState(50);
+    // Slider range: 0 to 100. Persisted to localStorage.
+    const [density, setDensity] = useState(() => {
+        const saved = localStorage.getItem('gallery-density');
+        return saved !== null ? parseInt(saved) : 50;
+    });
     const [activeCols, setActiveCols] = useState(baseBreakpoints);
+
+    // Gap State: Controls spacing between photos (0-32px). Persisted to localStorage.
+    const [gap, setGap] = useState(() => {
+        const saved = localStorage.getItem('gallery-gap');
+        return saved !== null ? parseInt(saved) : 16;
+    });
+
+    // Persist density to localStorage
+    useEffect(() => {
+        localStorage.setItem('gallery-density', density.toString());
+    }, [density]);
+
+    // Persist gap to localStorage
+    useEffect(() => {
+        localStorage.setItem('gallery-gap', gap.toString());
+    }, [gap]);
 
     // Calculate columns based on density
     useEffect(() => {
@@ -201,27 +220,36 @@ export function Gallery({ alias }) {
             )}
 
 
-            <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-4">
-                    {/* Integrated Density Slider */}
-                    <div className="flex items-center gap-2 group p-1 pr-0 rounded-full hover:bg-neutral-50 hover:shadow-sm border border-transparent hover:border-neutral-100 transition-all">
-                        {/* Track Container - Shows on Hover */}
-                        <div className="w-0 overflow-hidden group-hover:w-32 transition-all duration-300 ease-out flex items-center opacity-0 group-hover:opacity-100">
-                            <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                // Step removed for smooth sliding
-                                value={density}
-                                onChange={(e) => setDensity(parseInt(e.target.value))}
-                                className="w-28 h-1 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-brand-500 focus:outline-none ml-2"
-                            />
-                        </div>
+            <div className="flex items-center justify-center mb-8">
+                {/* Centered Control Group */}
+                <div className="flex items-center gap-2 group p-1 rounded-full hover:bg-neutral-50 hover:shadow-sm border border-transparent hover:border-neutral-100 transition-all">
+                    {/* Left: Density Slider - Shows on Hover */}
+                    <div className="w-0 overflow-hidden group-hover:w-32 transition-all duration-300 ease-out flex items-center opacity-0 group-hover:opacity-100">
+                        <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={density}
+                            onChange={(e) => setDensity(parseInt(e.target.value))}
+                            className="w-28 h-1 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-brand-500 focus:outline-none ml-2"
+                        />
+                    </div>
 
-                        {/* Item Count - Trigger */}
-                        <div className="text-neutral-400 text-xs font-mono bg-neutral-100 px-2.5 py-1 rounded-full cursor-col-resize group-hover:text-brand-600 group-hover:bg-brand-50 transition-colors whitespace-nowrap select-none">
-                            {allPhotos.length}
-                        </div>
+                    {/* Center: Item Count - Trigger */}
+                    <div className="text-neutral-400 text-xs font-mono bg-neutral-100 px-2.5 py-1 rounded-full cursor-col-resize group-hover:text-brand-600 group-hover:bg-brand-50 transition-colors whitespace-nowrap select-none">
+                        {allPhotos.length}
+                    </div>
+
+                    {/* Right: Gap Slider - Shows on Hover */}
+                    <div className="w-0 overflow-hidden group-hover:w-32 transition-all duration-300 ease-out flex items-center opacity-0 group-hover:opacity-100">
+                        <input
+                            type="range"
+                            min="0"
+                            max="32"
+                            value={gap}
+                            onChange={(e) => setGap(parseInt(e.target.value))}
+                            className="w-28 h-1 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-brand-500 focus:outline-none mr-2"
+                        />
                     </div>
                 </div>
             </div>
@@ -237,14 +265,16 @@ export function Gallery({ alias }) {
             ) : (
                 <Masonry
                     breakpointCols={activeCols}
-                    className="flex w-auto -ml-4"
-                    columnClassName="pl-4 bg-clip-padding"
+                    className="flex w-auto"
+                    columnClassName="bg-clip-padding"
+                    style={{ marginLeft: `-${gap}px` }}
                 >
                     {allPhotos.map((photo, index) => (
                         <motion.div
                             layoutId={photo.id}
                             key={photo.id}
-                            className="mb-4 relative group break-inside-avoid"
+                            className="relative group break-inside-avoid"
+                            style={{ paddingLeft: `${gap}px`, marginBottom: `${gap}px` }}
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ duration: 0.4, type: "spring" }} // Smooth Layout Transition
