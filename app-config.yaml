@@ -3,3 +3,6 @@ aliases:
     - name: 本地图片
       type: local
       path: ./photos
+    - name: ai
+      type: local
+      path: ./photos/ai

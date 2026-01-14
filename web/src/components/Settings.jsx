@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAliases, useAddAlias, useDeleteAlias, useUpdateAlias, useClearCache } from '../api/hooks';
 import { useToast } from './ui/Toast';
+import { useAlertDialog } from './ui/AlertDialog';
 
 export function Settings() {
     const { data: aliases, isLoading } = useAliases();
@@ -9,17 +10,16 @@ export function Settings() {
     const updateAliasMutation = useUpdateAlias();
     const clearCacheMutation = useClearCache();
     const { addToast } = useToast();
+    const { confirm } = useAlertDialog();
 
     const [newName, setNewName] = useState('');
     const [newPath, setNewPath] = useState('');
     const [isAdding, setIsAdding] = useState(false);
+    const [isClearing, setIsClearing] = useState(false);
 
     // Rename State
     const [editingAlias, setEditingAlias] = useState(null); // name of alias being edited
     const [editName, setEditName] = useState('');
-
-    // Clear Cache State
-    const [isClearing, setIsClearing] = useState(false);
 
     const handleAdd = async (e) => {
         e.preventDefault();
@@ -43,12 +43,41 @@ export function Settings() {
     };
 
     const handleDelete = async (name) => {
-        if (!confirm(`确定要移除相册 "${name}" 吗?`)) return;
+        const isConfirmed = await confirm({
+            title: "移除相册确认",
+            description: `您确定要移除 "${name}" 吗？这不会删除本地文件。`,
+            confirmText: "移除",
+            isDestructive: true
+        });
+
+        if (!isConfirmed) return;
+
         try {
             await deleteAliasMutation.mutateAsync(name);
             addToast({ title: "相册已移除", type: "success" });
         } catch (error) {
             addToast({ title: "移除失败", type: "error" });
+        }
+    };
+
+    const handleClearCache = async () => {
+        const isConfirmed = await confirm({
+            title: "清空缓存确认",
+            description: "确定要清空所有缩略图缓存吗？下次浏览时图片将重新生成，可能会短暂影响加载速度。",
+            confirmText: "清空",
+            isDestructive: true
+        });
+
+        if (!isConfirmed) return;
+
+        setIsClearing(true);
+        try {
+            await clearCacheMutation.mutateAsync();
+            addToast({ title: "缓存已清空", type: "success" });
+        } catch (error) {
+            addToast({ title: "清空失败", type: "error" });
+        } finally {
+            setIsClearing(false);
         }
     };
 
@@ -74,19 +103,6 @@ export function Settings() {
             cancelEditing();
         } catch (error) {
             addToast({ title: "重命名失败", description: "可能名称重复。", type: "error" });
-        }
-    }
-
-    const handleClearCache = async () => {
-        if (!confirm("确定要清空所有缩略图缓存吗？下次访问将重新生成。")) return;
-        setIsClearing(true);
-        try {
-            await clearCacheMutation.mutateAsync();
-            addToast({ title: "缓存清理成功", type: "success" });
-        } catch (error) {
-            addToast({ title: "清理失败", type: "error" });
-        } finally {
-            setIsClearing(false);
         }
     }
 
@@ -193,26 +209,25 @@ export function Settings() {
                 </div>
             </div>
 
-            {/* System Maintenance */}
+            {/* System Actions */}
             <div className="mb-12">
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-semibold text-neutral-800">系统维护 (Maintenance)</h2>
                 </div>
 
-                <div className="bg-white rounded-xl p-8 border border-neutral-200 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <div className="font-semibold text-neutral-800">清理缩略图缓存</div>
-                            <div className="text-sm text-neutral-500 mt-1">如果图片显示异常或想从头重新生成缩略图，请执行此操作。</div>
-                        </div>
-                        <button
-                            onClick={handleClearCache}
-                            disabled={isClearing}
-                            className="bg-white border border-neutral-200 text-neutral-600 hover:text-red-500 hover:border-red-200 px-4 py-2 rounded-md text-sm transition-all disabled:opacity-50"
-                        >
-                            {isClearing ? '清理中...' : '清空缓存'}
-                        </button>
+                <div className="bg-white rounded-xl p-8 border border-neutral-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <h3 className="font-semibold text-neutral-900">缩略图缓存</h3>
+                        <p className="text-sm text-neutral-500 mt-1">如果图片显示异常或更新不及时，可以尝试清空缓存。</p>
                     </div>
+                    <button
+                        onClick={handleClearCache}
+                        disabled={isClearing}
+                        className="px-4 py-2 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 hover:text-red-600 rounded-md text-sm transition-colors flex items-center gap-2"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        {isClearing ? '正在清空...' : '清空缓存'}
+                    </button>
                 </div>
             </div>
 

@@ -1,85 +1,103 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function Lightbox({ photo, onClose, onNext, onPrev }) {
     const [scale, setScale] = useState(1);
-
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (e.key === 'Escape') onClose();
-            if (e.key === 'ArrowRight') onNext();
-            if (e.key === 'ArrowLeft') onPrev();
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [onClose, onNext, onPrev]);
+    const [showControls, setShowControls] = useState(true);
+    const controlsTimeoutRef = useRef(null);
 
     // Reset scale when photo changes
     useEffect(() => {
         setScale(1);
     }, [photo]);
 
+    // Handle Mouse Move for auto-hiding
+    const handleMouseMove = () => {
+        setShowControls(true);
+        if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+        controlsTimeoutRef.current = setTimeout(() => {
+            setShowControls(false);
+        }, 1500); // Hide after 1.5s idle
+    };
+
+    useEffect(() => {
+        window.addEventListener('mousemove', handleMouseMove);
+        // Init timeout
+        controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 2000);
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') onClose();
+            if (e.key === 'ArrowRight') onNext();
+            if (e.key === 'ArrowLeft') onPrev();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('keydown', handleKeyDown);
+            if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+        };
+    }, [onClose, onNext, onPrev]);
+
+
+    if (!photo) return null;
+
     const handleZoomIn = (e) => {
         e.stopPropagation();
-        setScale(prev => Math.min(prev + 0.5, 3));
-    };
+        setScale(p => Math.min(p + 0.5, 4));
+    }
 
     const handleZoomOut = (e) => {
         e.stopPropagation();
-        setScale(prev => Math.max(prev - 0.5, 0.5));
-    };
-
-    const handleWrapperClick = (e) => {
-        // Close only if clicking the background wrapper (backdrop) or if intended
-        // We stop propagation on image click, so clicking background will close
-        onClose();
-    };
-
-    if (!photo) return null;
+        setScale(p => Math.max(p - 0.5, 0.5));
+    }
 
     return (
         <AnimatePresence>
             <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 bg-white/98 flex items-center justify-center p-0 overflow-hidden cursor-zoom-out"
-                onClick={handleWrapperClick}
+                initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+                animate={{ opacity: 1, backdropFilter: "blur(8px)" }}
+                exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+                className="fixed inset-0 z-50 bg-white/80 flex flex-col items-center justify-center p-4 cursor-zoom-out"
+                onClick={onClose}
             >
-                <motion.div
-                    className="relative w-full h-full flex items-center justify-center p-4"
-                    initial={{ scale: 0.95, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.95, opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                >
-                    <motion.img
-                        key={photo.id}
-                        src={`/api/v1/file?alias=${encodeURIComponent(photo.alias)}&path=${encodeURIComponent(photo.path)}`}
-                        alt={photo.name}
-                        style={{ scale }}
-                        className="max-h-full max-w-full object-contain shadow-2xl rounded-sm cursor-default transition-transform duration-200"
-                        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking image
-                    />
-                </motion.div>
+                {/* Zoom Controls (Auto-Hide) */}
+                <AnimatePresence>
+                    {showControls && (
+                        <motion.div
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 20, opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="absolute bottom-8 flex gap-3 bg-white/90 backdrop-blur-md border border-neutral-200 rounded-full px-5 py-2 shadow-lg z-50 pointer-events-auto cursor-default"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <button onClick={handleZoomOut} className="text-neutral-400 hover:text-neutral-900 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                            </button>
+                            <span className="text-xs font-mono text-neutral-400 flex items-center w-10 justify-center select-none">{Math.round(scale * 100)}%</span>
+                            <button onClick={handleZoomIn} className="text-neutral-400 hover:text-neutral-900 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
-                {/* Zoom Controls Overlay */}
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-white/10 backdrop-blur-md rounded-full border border-neutral-200/20 shadow-xl px-4 py-2 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
-                    <button
-                        onClick={handleZoomOut}
-                        className="w-10 h-10 flex items-center justify-center rounded-full bg-white text-neutral-600 hover:text-brand-500 hover:scale-110 active:scale-95 transition-all shadow-sm"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    </button>
-                    <span className="text-neutral-500 font-mono text-sm w-12 text-center">{Math.round(scale * 100)}%</span>
-                    <button
-                        onClick={handleZoomIn}
-                        className="w-10 h-10 flex items-center justify-center rounded-full bg-white text-neutral-600 hover:text-brand-500 hover:scale-110 active:scale-95 transition-all shadow-sm"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    </button>
-                </div>
+                <motion.img
+                    key={photo.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: scale }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    src={`/api/v1/file?alias=${encodeURIComponent(photo.alias)}&path=${encodeURIComponent(photo.path)}`}
+                    alt={photo.name}
+                    style={{ maxHeight: 'calc(100vh - 80px)', maxWidth: 'calc(100vw - 40px)' }}
+                    className="object-contain shadow-2xl rounded-sm cursor-grab active:cursor-grabbing"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                    }}
+                    draggable="false"
+                />
             </motion.div>
         </AnimatePresence>
     );

@@ -5,6 +5,7 @@ import { useAliases } from './api/hooks'
 import { Gallery } from './components/Gallery'
 import { Settings } from './components/Settings'
 import { ToastProvider } from './components/ui/Toast'
+import { AlertDialogProvider } from './components/ui/AlertDialog'
 
 const queryClient = new QueryClient()
 
@@ -157,7 +158,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <AppContent />
+        <AlertDialogProvider>
+          <AppContent />
+        </AlertDialogProvider>
       </ToastProvider>
     </QueryClientProvider>
   )
