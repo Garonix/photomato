@@ -160,7 +160,7 @@ export function Gallery({ alias }) {
                         移动...
                     </button>
                     <div className="h-px bg-neutral-100 my-1"></div>
-                    <button onClick={() => handleMenuAction('delete')} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2">
+                    <button onClick={() => handleMenuAction('delete')} className="w-full text-left px-4 py-2 hover:bg-brand-50 text-brand-600 flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                         删除
                     </button>

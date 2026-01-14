@@ -6,3 +6,6 @@ aliases:
     - name: ai
       type: local
       path: ./photos/ai
+    - name: 空白测试
+      type: local
+      path: ./photos/empty

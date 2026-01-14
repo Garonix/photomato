@@ -62,10 +62,7 @@ export function AlertDialogProvider({ children }) {
                                 </button>
                                 <button
                                     onClick={config.onConfirm}
-                                    className={`px-4 py-2 text-sm font-medium text-white rounded-lg shadow-sm transition-all transform active:scale-95 ${config.isDestructive
-                                            ? 'bg-red-500 hover:bg-red-600 shadow-red-500/20'
-                                            : 'bg-brand-600 hover:bg-brand-700 shadow-brand-500/20'
-                                        }`}
+                                    className={`px-4 py-2 text-sm font-medium text-white rounded-lg shadow-sm transition-all transform active:scale-95 bg-brand-600 hover:bg-brand-700 shadow-brand-500/20`}
                                 >
                                     {config.confirmText}
                                 </button>
