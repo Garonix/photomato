@@ -1,0 +1,5 @@
+port: 8080
+aliases:
+    - name: 本地图片
+      type: local
+      path: ./photos
