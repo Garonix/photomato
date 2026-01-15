@@ -33,6 +33,13 @@ export function Gallery({ alias }) {
     const [isDragSelecting, setIsDragSelecting] = useState(false);
     const [dragSelectMode, setDragSelectMode] = useState(null); // 'select' or 'deselect'
 
+    // View mode state: 'masonry' or 'grid'
+    const [viewMode, setViewMode] = useState(() => {
+        const saved = localStorage.getItem('gallery-view-mode');
+        return saved || 'masonry';
+    });
+    const [currentPage, setCurrentPage] = useState(1);
+
     // File upload input ref
     const fileInputRef = useRef(null);
 
@@ -59,6 +66,34 @@ export function Gallery({ alias }) {
     useEffect(() => {
         localStorage.setItem('gallery-gap', gap.toString());
     }, [gap]);
+
+    // Persist view mode to localStorage
+    useEffect(() => {
+        localStorage.setItem('gallery-view-mode', viewMode);
+    }, [viewMode]);
+
+    // Calculate all photos first (to be used in logic below)
+    const allPhotos = data?.pages?.flatMap((page) => page.photos ?? []) ?? [];
+
+    // Grid view: items per page (density 0-100 maps to 12-60)
+    const itemsPerPage = Math.round(12 + (density / 100) * 48);
+
+    // Grid view: total pages
+    const totalPages = Math.max(1, Math.ceil(allPhotos.length / itemsPerPage));
+
+    // Reset currentPage when it exceeds totalPages
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
+
+    // Grid view: current page photos
+    const displayPhotos = viewMode === 'grid'
+        ? allPhotos.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+        : allPhotos;
+
+
 
     // Selection indicator size (w-6 = 24px), used for minimum gap in select mode
     const SELECTION_INDICATOR_SIZE = 24;
@@ -310,7 +345,7 @@ export function Gallery({ alias }) {
     if (status === 'pending') return <div className="flex justify-center h-64 text-neutral-300 animate-pulse mt-12">Loading...</div>;
     if (status === 'error') return <div className="flex justify-center h-64 text-red-500 mt-12">Failed to load.</div>;
 
-    const allPhotos = data?.pages?.flatMap((page) => page.photos ?? []) ?? [];
+
 
     const handleClose = () => setSelectedPhotoIndex(null);
     const handleNext = () => setSelectedPhotoIndex((prev) => (prev + 1 < allPhotos.length ? prev + 1 : prev));
@@ -459,20 +494,22 @@ export function Gallery({ alias }) {
 
                     {/* Center: Item Count - Trigger */}
                     <div className="text-neutral-400 text-xs font-mono bg-neutral-100 px-2.5 py-1 rounded-full cursor-col-resize group-hover:text-brand-600 group-hover:bg-brand-50 transition-colors whitespace-nowrap select-none">
-                        {allPhotos.length}
+                        {viewMode === 'grid' ? `${itemsPerPage}/页` : allPhotos.length}
                     </div>
 
-                    {/* Right: Gap Slider - Shows on Hover */}
-                    <div className="w-0 overflow-hidden group-hover:w-32 transition-all duration-300 ease-out flex items-center opacity-0 group-hover:opacity-100">
-                        <input
-                            type="range"
-                            min="0"
-                            max="32"
-                            value={gap}
-                            onChange={(e) => setGap(parseInt(e.target.value))}
-                            className="w-28 h-1 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-brand-500 focus:outline-none mr-2"
-                        />
-                    </div>
+                    {/* Right: Gap Slider - Shows on Hover (Masonry mode only) */}
+                    {viewMode === 'masonry' && (
+                        <div className="w-0 overflow-hidden group-hover:w-32 transition-all duration-300 ease-out flex items-center opacity-0 group-hover:opacity-100">
+                            <input
+                                type="range"
+                                min="0"
+                                max="32"
+                                value={gap}
+                                onChange={(e) => setGap(parseInt(e.target.value))}
+                                className="w-28 h-1 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-brand-500 focus:outline-none mr-2"
+                            />
+                        </div>
+                    )}
                 </div>
 
                 {/* Right: Select Mode Toggle + Upload Button */}
@@ -511,6 +548,29 @@ export function Gallery({ alias }) {
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
                     </button>
+
+                    {/* View Mode Toggle Button */}
+                    <button
+                        onClick={() => {
+                            setViewMode(prev => prev === 'masonry' ? 'grid' : 'masonry');
+                            setCurrentPage(1);
+                        }}
+                        className="p-2 rounded-full hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 transition-colors"
+                        title={viewMode === 'masonry' ? '切换到分页视图' : '切换到瀑布流视图'}
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            stroke="none"
+                            className="transition-transform duration-500"
+                            style={{ transform: viewMode === 'masonry' ? 'rotate(0deg)' : 'rotate(180deg)' }}
+                        >
+                            <polygon points="12,16 4,8 20,8"></polygon>
+                        </svg>
+                    </button>
                 </div>
             </div>
 
@@ -522,14 +582,15 @@ export function Gallery({ alias }) {
                     <p className="mb-2 text-lg font-medium text-neutral-400">暂无照片</p>
                     <p className="text-sm text-neutral-400">拖放图片到此处上传</p>
                 </div>
-            ) : (
+            ) : viewMode === 'masonry' ? (
+                /* Masonry View */
                 <Masonry
                     breakpointCols={activeCols}
                     className="flex w-auto"
                     columnClassName="bg-clip-padding"
                     style={{ marginLeft: `-${effectiveGap}px` }}
                 >
-                    {allPhotos.map((photo, index) => (
+                    {displayPhotos.map((photo, index) => (
                         <motion.div
                             layoutId={photo.id}
                             key={photo.id}
@@ -543,17 +604,16 @@ export function Gallery({ alias }) {
                                 className={`relative rounded-sm overflow-hidden bg-neutral-100 transition-all duration-300 ease-out cursor-pointer hover:shadow-xl hover:shadow-neutral-900/10 hover:-translate-y-1 hover:brightness-[1.02] ${isSelectMode && selectedPhotos.has(photo.id) ? 'ring-4 ring-brand-500 ring-offset-2' : ''}`}
                                 onClick={() => {
                                     if (isSelectMode) {
-                                        // Only toggle if not drag selecting (click without drag)
                                         if (!isDragSelecting) {
                                             togglePhotoSelection(photo.id);
                                         }
                                     } else {
-                                        setSelectedPhotoIndex(index);
+                                        setSelectedPhotoIndex(allPhotos.findIndex(p => p.id === photo.id));
                                     }
                                 }}
                                 onMouseDown={(e) => {
                                     if (isSelectMode && e.button === 0) {
-                                        e.preventDefault(); // Prevent text selection
+                                        e.preventDefault();
                                         handleSelectionMouseDown(photo.id);
                                     }
                                 }}
@@ -567,7 +627,6 @@ export function Gallery({ alias }) {
                                     draggable="false"
                                     className={`w-full h-auto block select-none transition-opacity ${isSelectMode && selectedPhotos.has(photo.id) ? 'opacity-80' : ''}`}
                                 />
-                                {/* Selection indicator */}
                                 <AnimatePresence>
                                     {isSelectMode && (
                                         <motion.div
@@ -589,9 +648,104 @@ export function Gallery({ alias }) {
                         </motion.div>
                     ))}
                 </Masonry>
+            ) : (
+                /* Grid View */
+                <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+                    {displayPhotos.map((photo) => (
+                        <motion.div
+                            key={photo.id}
+                            className="group"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <div
+                                className={`relative w-full h-[200px] rounded-sm overflow-hidden bg-neutral-100 transition-all duration-300 ease-out cursor-pointer hover:shadow-xl hover:shadow-neutral-900/10 hover:brightness-[1.02] ${isSelectMode && selectedPhotos.has(photo.id) ? 'ring-4 ring-brand-500 ring-offset-2' : ''}`}
+                                onClick={() => {
+                                    if (isSelectMode) {
+                                        if (!isDragSelecting) {
+                                            togglePhotoSelection(photo.id);
+                                        }
+                                    } else {
+                                        setSelectedPhotoIndex(allPhotos.findIndex(p => p.id === photo.id));
+                                    }
+                                }}
+                                onMouseDown={(e) => {
+                                    if (isSelectMode && e.button === 0) {
+                                        e.preventDefault();
+                                        handleSelectionMouseDown(photo.id);
+                                    }
+                                }}
+                                onMouseEnter={() => handleSelectionMouseEnter(photo.id)}
+                                onContextMenu={(e) => handleContextMenu(e, photo)}
+                            >
+                                <img
+                                    src={`/api/v1/thumb?alias=${encodeURIComponent(alias)}&path=${encodeURIComponent(photo.path)}`}
+                                    alt={photo.name}
+                                    loading="lazy"
+                                    draggable="false"
+                                    className={`w-full h-full object-contain select-none transition-opacity ${isSelectMode && selectedPhotos.has(photo.id) ? 'opacity-80' : ''}`}
+                                />
+                                <AnimatePresence>
+                                    {isSelectMode && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.5 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.5 }}
+                                            transition={{ duration: 0.2 }}
+                                            className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors duration-200 ${selectedPhotos.has(photo.id) ? 'bg-brand-500 border-brand-500 text-white' : 'bg-white/80 border-neutral-300'}`}
+                                        >
+                                            {selectedPhotos.has(photo.id) && (
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                                </svg>
+                                            )}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
             )}
 
-            {hasNextPage && allPhotos.length > 0 && (
+            {/* Pagination for Grid View */}
+            {viewMode === 'grid' && allPhotos.length > 0 && (
+                <div className="mt-12 flex items-center justify-center gap-4 pb-8">
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 text-sm rounded-full bg-white border border-neutral-200 text-neutral-600 hover:border-brand-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                        上一页
+                    </button>
+                    <div className="flex items-center gap-2 text-sm text-neutral-500">
+                        <input
+                            type="number"
+                            min="1"
+                            max={totalPages}
+                            value={currentPage}
+                            onChange={(e) => {
+                                const val = parseInt(e.target.value) || 1;
+                                setCurrentPage(Math.min(Math.max(1, val), totalPages));
+                            }}
+                            className="w-12 px-2 py-1 text-center border border-neutral-200 rounded-lg focus:outline-none focus:border-brand-400"
+                        />
+                        <span>/</span>
+                        <span>{totalPages}</span>
+                    </div>
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-4 py-2 text-sm rounded-full bg-white border border-neutral-200 text-neutral-600 hover:border-brand-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                        下一页
+                    </button>
+                </div>
+            )}
+
+            {/* Load More for Masonry View */}
+            {viewMode === 'masonry' && hasNextPage && allPhotos.length > 0 && (
                 <div className="mt-16 flex justify-center pb-8">
                     <button
                         onClick={() => fetchNextPage()}
