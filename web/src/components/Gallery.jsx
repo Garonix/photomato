@@ -30,6 +30,7 @@ export function Gallery({ alias }) {
     // Multi-select mode state
     const [isSelectMode, setIsSelectMode] = useState(false);
     const [selectedPhotos, setSelectedPhotos] = useState(new Set());
+    const [isDragSelecting, setIsDragSelecting] = useState(false);
 
     // File upload input ref
     const fileInputRef = useRef(null);
@@ -57,6 +58,12 @@ export function Gallery({ alias }) {
     useEffect(() => {
         localStorage.setItem('gallery-gap', gap.toString());
     }, [gap]);
+
+    // Selection indicator size (w-6 = 24px), used for minimum gap in select mode
+    const SELECTION_INDICATOR_SIZE = 24;
+
+    // Effective gap: in select mode, ensure minimum gap for selection indicators
+    const effectiveGap = isSelectMode ? Math.max(gap, SELECTION_INDICATOR_SIZE) : gap;
 
     // Calculate columns based on density
     useEffect(() => {
@@ -208,10 +215,45 @@ export function Gallery({ alias }) {
         });
     };
 
+    // Add photo to selection (for drag selecting)
+    const addToSelection = (photoId) => {
+        setSelectedPhotos(prev => {
+            if (prev.has(photoId)) return prev;
+            const newSet = new Set(prev);
+            newSet.add(photoId);
+            return newSet;
+        });
+    };
+
+    // Handle drag selection start
+    const handleSelectionMouseDown = (photoId) => {
+        if (!isSelectMode) return;
+        setIsDragSelecting(true);
+        addToSelection(photoId);
+    };
+
+    // Handle drag selection move (when hovering over a photo while dragging)
+    const handleSelectionMouseEnter = (photoId) => {
+        if (!isSelectMode || !isDragSelecting) return;
+        addToSelection(photoId);
+    };
+
+    // Stop drag selection on mouse up (global listener)
+    useEffect(() => {
+        const handleMouseUp = () => {
+            if (isDragSelecting) {
+                setIsDragSelecting(false);
+            }
+        };
+        window.addEventListener('mouseup', handleMouseUp);
+        return () => window.removeEventListener('mouseup', handleMouseUp);
+    }, [isDragSelecting]);
+
     // Exit select mode
     const exitSelectMode = () => {
         setIsSelectMode(false);
         setSelectedPhotos(new Set());
+        setIsDragSelecting(false);
     };
 
     // Batch delete
@@ -334,26 +376,13 @@ export function Gallery({ alias }) {
 
             {/* Top Bar */}
             <div className="flex items-center justify-between mb-8">
-                {/* Left: Select Mode Toggle */}
+                {/* Left: Selection info and batch actions (only in select mode) */}
                 <div className="flex items-center gap-2">
-                    {isSelectMode ? (
+                    {isSelectMode && (
                         <>
-                            {/* Exit select mode */}
-                            <button
-                                onClick={exitSelectMode}
-                                className="p-2 rounded-full hover:bg-neutral-100 text-neutral-500 hover:text-neutral-700 transition-colors"
-                                title="退出多选"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                            </button>
-                            {/* Selected count */}
                             <span className="text-sm text-neutral-500">
                                 已选择 <span className="font-semibold text-brand-600">{selectedPhotos.size}</span> 张
                             </span>
-                            {/* Batch actions */}
                             {selectedPhotos.size > 0 && (
                                 <>
                                     <button
@@ -371,16 +400,6 @@ export function Gallery({ alias }) {
                                 </>
                             )}
                         </>
-                    ) : (
-                        <button
-                            onClick={() => setIsSelectMode(true)}
-                            className="p-2 rounded-full hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 transition-colors"
-                            title="多选"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                            </svg>
-                        </button>
                     )}
                 </div>
 
@@ -416,17 +435,43 @@ export function Gallery({ alias }) {
                     </div>
                 </div>
 
-                {/* Right: Upload Button */}
-                <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="p-2 rounded-full hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 transition-colors"
-                    title="上传图片"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                </button>
+                {/* Right: Select Mode Toggle + Upload Button */}
+                <div className="flex items-center gap-1">
+                    {/* Select Mode Toggle with animated icon */}
+                    <button
+                        onClick={() => isSelectMode ? exitSelectMode() : setIsSelectMode(true)}
+                        className={`p-2 rounded-full transition-colors ${isSelectMode ? 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200' : 'hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600'}`}
+                        title={isSelectMode ? "退出多选" : "多选"}
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="transition-transform duration-200"
+                            style={{ transform: isSelectMode ? 'rotate(45deg)' : 'rotate(0deg)' }}
+                        >
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        </svg>
+                    </button>
+
+                    {/* Upload Button */}
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="p-2 rounded-full hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 transition-colors"
+                        title="上传图片"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             {allPhotos.length === 0 ? (
@@ -442,14 +487,14 @@ export function Gallery({ alias }) {
                     breakpointCols={activeCols}
                     className="flex w-auto"
                     columnClassName="bg-clip-padding"
-                    style={{ marginLeft: `-${gap}px` }}
+                    style={{ marginLeft: `-${effectiveGap}px` }}
                 >
                     {allPhotos.map((photo, index) => (
                         <motion.div
                             layoutId={photo.id}
                             key={photo.id}
                             className="relative group break-inside-avoid"
-                            style={{ paddingLeft: `${gap}px`, marginBottom: `${gap}px` }}
+                            style={{ paddingLeft: `${effectiveGap}px`, marginBottom: `${effectiveGap}px` }}
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ duration: 0.4, type: "spring" }} // Smooth Layout Transition
@@ -458,11 +503,21 @@ export function Gallery({ alias }) {
                                 className={`rounded-sm overflow-hidden bg-neutral-100 transition-all duration-300 ease-out cursor-pointer hover:shadow-xl hover:shadow-neutral-900/10 hover:-translate-y-1 hover:brightness-[1.02] ${isSelectMode && selectedPhotos.has(photo.id) ? 'ring-4 ring-brand-500 ring-offset-2' : ''}`}
                                 onClick={() => {
                                     if (isSelectMode) {
-                                        togglePhotoSelection(photo.id);
+                                        // Only toggle if not drag selecting (click without drag)
+                                        if (!isDragSelecting) {
+                                            togglePhotoSelection(photo.id);
+                                        }
                                     } else {
                                         setSelectedPhotoIndex(index);
                                     }
                                 }}
+                                onMouseDown={(e) => {
+                                    if (isSelectMode && e.button === 0) {
+                                        e.preventDefault(); // Prevent text selection
+                                        handleSelectionMouseDown(photo.id);
+                                    }
+                                }}
+                                onMouseEnter={() => handleSelectionMouseEnter(photo.id)}
                                 onContextMenu={(e) => handleContextMenu(e, photo)}
                             >
                                 <img
@@ -474,7 +529,7 @@ export function Gallery({ alias }) {
                                 />
                                 {/* Selection indicator */}
                                 {isSelectMode && (
-                                    <div className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selectedPhotos.has(photo.id) ? 'bg-brand-500 border-brand-500 text-white' : 'bg-white/80 border-neutral-300'}`} style={{ marginLeft: `${gap}px` }}>
+                                    <div className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selectedPhotos.has(photo.id) ? 'bg-brand-500 border-brand-500 text-white' : 'bg-white/80 border-neutral-300'}`} style={{ marginLeft: `${effectiveGap}px` }}>
                                         {selectedPhotos.has(photo.id) && (
                                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                                 <polyline points="20 6 9 17 4 12"></polyline>
