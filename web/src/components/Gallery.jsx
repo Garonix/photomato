@@ -31,6 +31,7 @@ export function Gallery({ alias }) {
     const [isSelectMode, setIsSelectMode] = useState(false);
     const [selectedPhotos, setSelectedPhotos] = useState(new Set());
     const [isDragSelecting, setIsDragSelecting] = useState(false);
+    const [dragSelectMode, setDragSelectMode] = useState(null); // 'select' or 'deselect'
 
     // File upload input ref
     const fileInputRef = useRef(null);
@@ -229,13 +230,34 @@ export function Gallery({ alias }) {
     const handleSelectionMouseDown = (photoId) => {
         if (!isSelectMode) return;
         setIsDragSelecting(true);
-        addToSelection(photoId);
+        // Determine mode based on first photo's current state
+        const isCurrentlySelected = selectedPhotos.has(photoId);
+        const mode = isCurrentlySelected ? 'deselect' : 'select';
+        setDragSelectMode(mode);
+        // Apply action to first photo
+        setSelectedPhotos(prev => {
+            const newSet = new Set(prev);
+            if (mode === 'select') {
+                newSet.add(photoId);
+            } else {
+                newSet.delete(photoId);
+            }
+            return newSet;
+        });
     };
 
     // Handle drag selection move (when hovering over a photo while dragging)
     const handleSelectionMouseEnter = (photoId) => {
-        if (!isSelectMode || !isDragSelecting) return;
-        addToSelection(photoId);
+        if (!isSelectMode || !isDragSelecting || !dragSelectMode) return;
+        setSelectedPhotos(prev => {
+            const newSet = new Set(prev);
+            if (dragSelectMode === 'select') {
+                newSet.add(photoId);
+            } else {
+                newSet.delete(photoId);
+            }
+            return newSet;
+        });
     };
 
     // Stop drag selection on mouse up (global listener)
@@ -243,6 +265,7 @@ export function Gallery({ alias }) {
         const handleMouseUp = () => {
             if (isDragSelecting) {
                 setIsDragSelecting(false);
+                setDragSelectMode(null);
             }
         };
         window.addEventListener('mouseup', handleMouseUp);
@@ -254,6 +277,7 @@ export function Gallery({ alias }) {
         setIsSelectMode(false);
         setSelectedPhotos(new Set());
         setIsDragSelecting(false);
+        setDragSelectMode(null);
     };
 
     // Batch delete
@@ -377,34 +401,55 @@ export function Gallery({ alias }) {
             {/* Top Bar */}
             <div className="flex items-center justify-between mb-8">
                 {/* Left: Selection info and batch actions (only in select mode) */}
-                <div className="flex items-center gap-2">
-                    {isSelectMode && (
-                        <>
-                            <span className="text-sm text-neutral-500">
-                                已选择 <span className="font-semibold text-brand-600">{selectedPhotos.size}</span> 张
-                            </span>
-                            {selectedPhotos.size > 0 && (
-                                <>
-                                    <button
-                                        onClick={handleBatchMove}
-                                        className="px-3 py-1.5 text-sm rounded-full bg-neutral-100 text-neutral-600 hover:bg-neutral-200 transition-colors"
-                                    >
-                                        移动
-                                    </button>
-                                    <button
-                                        onClick={handleBatchDelete}
-                                        className="px-3 py-1.5 text-sm rounded-full bg-brand-50 text-brand-600 hover:bg-brand-100 transition-colors"
-                                    >
-                                        删除
-                                    </button>
-                                </>
-                            )}
-                        </>
-                    )}
+                <div className="flex items-center gap-2 min-w-0">
+                    <AnimatePresence>
+                        {isSelectMode && (
+                            <motion.div
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                transition={{ duration: 0.3 }}
+                                className="flex items-center gap-2"
+                            >
+                                <span className="text-sm text-neutral-500">
+                                    已选择 <span className="font-semibold text-brand-600">{selectedPhotos.size}</span> 张
+                                </span>
+                                <AnimatePresence>
+                                    {selectedPhotos.size > 0 && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.9 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.9 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="flex items-center gap-2"
+                                        >
+                                            <button
+                                                onClick={handleBatchMove}
+                                                className="px-3 py-1.5 text-sm rounded-full bg-neutral-100 text-neutral-600 hover:bg-neutral-200 transition-colors"
+                                            >
+                                                移动
+                                            </button>
+                                            <button
+                                                onClick={handleBatchDelete}
+                                                className="px-3 py-1.5 text-sm rounded-full bg-brand-50 text-brand-600 hover:bg-brand-100 transition-colors"
+                                            >
+                                                删除
+                                            </button>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
                 {/* Center: Density/Gap Control Group */}
-                <div className="flex items-center gap-2 group p-1 rounded-full hover:bg-neutral-50 hover:shadow-sm border border-transparent hover:border-neutral-100 transition-all">
+                <motion.div
+                    initial={false}
+                    animate={{ x: isSelectMode ? 40 : 0 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                    className="flex items-center gap-2 group p-1 rounded-full hover:bg-neutral-50 hover:shadow-sm border border-transparent hover:border-neutral-100 transition-colors"
+                >
                     {/* Left: Density Slider - Shows on Hover */}
                     <div className="w-0 overflow-hidden group-hover:w-32 transition-all duration-300 ease-out flex items-center opacity-0 group-hover:opacity-100">
                         <input
@@ -433,7 +478,7 @@ export function Gallery({ alias }) {
                             className="w-28 h-1 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-brand-500 focus:outline-none mr-2"
                         />
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Right: Select Mode Toggle + Upload Button */}
                 <div className="flex items-center gap-1">
@@ -453,7 +498,7 @@ export function Gallery({ alias }) {
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            className="transition-transform duration-200"
+                            className="transition-transform duration-500"
                             style={{ transform: isSelectMode ? 'rotate(45deg)' : 'rotate(0deg)' }}
                         >
                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -493,14 +538,14 @@ export function Gallery({ alias }) {
                         <motion.div
                             layoutId={photo.id}
                             key={photo.id}
-                            className="relative group break-inside-avoid"
+                            className="group break-inside-avoid"
                             style={{ paddingLeft: `${effectiveGap}px`, marginBottom: `${effectiveGap}px` }}
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.4, type: "spring" }} // Smooth Layout Transition
+                            transition={{ duration: 0.4, type: "spring" }}
                         >
                             <div
-                                className={`rounded-sm overflow-hidden bg-neutral-100 transition-all duration-300 ease-out cursor-pointer hover:shadow-xl hover:shadow-neutral-900/10 hover:-translate-y-1 hover:brightness-[1.02] ${isSelectMode && selectedPhotos.has(photo.id) ? 'ring-4 ring-brand-500 ring-offset-2' : ''}`}
+                                className={`relative rounded-sm overflow-hidden bg-neutral-100 transition-all duration-300 ease-out cursor-pointer hover:shadow-xl hover:shadow-neutral-900/10 hover:-translate-y-1 hover:brightness-[1.02] ${isSelectMode && selectedPhotos.has(photo.id) ? 'ring-4 ring-brand-500 ring-offset-2' : ''}`}
                                 onClick={() => {
                                     if (isSelectMode) {
                                         // Only toggle if not drag selecting (click without drag)
@@ -528,15 +573,23 @@ export function Gallery({ alias }) {
                                     className={`w-full h-auto block select-none transition-opacity ${isSelectMode && selectedPhotos.has(photo.id) ? 'opacity-80' : ''}`}
                                 />
                                 {/* Selection indicator */}
-                                {isSelectMode && (
-                                    <div className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selectedPhotos.has(photo.id) ? 'bg-brand-500 border-brand-500 text-white' : 'bg-white/80 border-neutral-300'}`} style={{ marginLeft: `${effectiveGap}px` }}>
-                                        {selectedPhotos.has(photo.id) && (
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                                <polyline points="20 6 9 17 4 12"></polyline>
-                                            </svg>
-                                        )}
-                                    </div>
-                                )}
+                                <AnimatePresence>
+                                    {isSelectMode && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.5 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.5 }}
+                                            transition={{ duration: 0.2 }}
+                                            className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors duration-200 ${selectedPhotos.has(photo.id) ? 'bg-brand-500 border-brand-500 text-white' : 'bg-white/80 border-neutral-300'}`}
+                                        >
+                                            {selectedPhotos.has(photo.id) && (
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                                </svg>
+                                            )}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
                         </motion.div>
                     ))}
