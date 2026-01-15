@@ -3,6 +3,7 @@ import Masonry from 'react-masonry-css';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePhotos, useUploadPhoto, useDeletePhoto } from '../api/hooks';
 import { Lightbox } from './Lightbox';
+import { AlbumCapsule } from './AlbumCapsule';
 import { useAlertDialog } from '../components/ui/AlertDialog'; // Import custom alert hook
 
 // Default breakpoints, will be scaled by density factor
@@ -16,7 +17,7 @@ const baseBreakpoints = {
     640: 1
 };
 
-export function Gallery({ alias, onOpenSettings }) {
+export function Gallery({ alias, aliases = [], onAliasChange, onOpenSettings }) {
     const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } = usePhotos(alias);
     const uploadMutation = useUploadPhoto();
     const deleteMutation = useDeletePhoto();
@@ -436,8 +437,19 @@ export function Gallery({ alias, onOpenSettings }) {
 
             {/* Top Bar */}
             <div className="relative flex items-center justify-center mb-8">
-                {/* Left: Selection info and batch actions (only in select mode) - absolute positioned */}
-                <div className="absolute left-0 flex items-center gap-2">
+                {/* Left: Logo + Album Capsule + Selection info */}
+                <div className="absolute left-0 flex items-center gap-3">
+                    {/* Logo Placeholder */}
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-red-500 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                        P
+                    </div>
+                    {/* Album Capsule */}
+                    <AlbumCapsule
+                        aliases={aliases}
+                        activeAlias={alias}
+                        onAliasChange={onAliasChange}
+                    />
+                    {/* Selection info (only in select mode) */}
                     <AnimatePresence>
                         {isSelectMode && (
                             <motion.div
