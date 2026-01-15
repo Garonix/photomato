@@ -399,9 +399,9 @@ export function Gallery({ alias }) {
             />
 
             {/* Top Bar */}
-            <div className="flex items-center justify-between mb-8">
-                {/* Left: Selection info and batch actions (only in select mode) */}
-                <div className="flex items-center gap-2 min-w-0">
+            <div className="relative flex items-center justify-center mb-8">
+                {/* Left: Selection info and batch actions (only in select mode) - absolute positioned */}
+                <div className="absolute left-0 flex items-center gap-2">
                     <AnimatePresence>
                         {isSelectMode && (
                             <motion.div
@@ -444,12 +444,7 @@ export function Gallery({ alias }) {
                 </div>
 
                 {/* Center: Density/Gap Control Group */}
-                <motion.div
-                    initial={false}
-                    animate={{ x: isSelectMode ? 40 : 0 }}
-                    transition={{ duration: 0.3, ease: "easeOut" }}
-                    className="flex items-center gap-2 group p-1 rounded-full hover:bg-neutral-50 hover:shadow-sm border border-transparent hover:border-neutral-100 transition-colors"
-                >
+                <div className="flex items-center gap-2 group p-1 rounded-full hover:bg-neutral-50 hover:shadow-sm border border-transparent hover:border-neutral-100 transition-all">
                     {/* Left: Density Slider - Shows on Hover */}
                     <div className="w-0 overflow-hidden group-hover:w-32 transition-all duration-300 ease-out flex items-center opacity-0 group-hover:opacity-100">
                         <input
@@ -478,10 +473,10 @@ export function Gallery({ alias }) {
                             className="w-28 h-1 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-brand-500 focus:outline-none mr-2"
                         />
                     </div>
-                </motion.div>
+                </div>
 
                 {/* Right: Select Mode Toggle + Upload Button */}
-                <div className="flex items-center gap-1">
+                <div className="absolute right-0 flex items-center gap-1">
                     {/* Select Mode Toggle with animated icon */}
                     <button
                         onClick={() => isSelectMode ? exitSelectMode() : setIsSelectMode(true)}
