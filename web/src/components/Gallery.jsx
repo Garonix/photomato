@@ -27,6 +27,13 @@ export function Gallery({ alias }) {
     const [uploadStatus, setUploadStatus] = useState(null);
     const [contextMenu, setContextMenu] = useState(null);
 
+    // Multi-select mode state
+    const [isSelectMode, setIsSelectMode] = useState(false);
+    const [selectedPhotos, setSelectedPhotos] = useState(new Set());
+
+    // File upload input ref
+    const fileInputRef = useRef(null);
+
     // Density State (1 = Normal, 0.5 = Sparse, 2 = Dense)
     // Slider range: 0 to 100. Persisted to localStorage.
     const [density, setDensity] = useState(() => {
@@ -120,14 +127,8 @@ export function Gallery({ alias }) {
         closeContextMenu();
     };
 
-    // D&D Logic
-    const handleDragEnter = (e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); };
-    const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); if (e.currentTarget.contains(e.relatedTarget)) return; setIsDragging(false); };
-    const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); };
-    const handleDrop = async (e) => {
-        e.preventDefault(); e.stopPropagation(); setIsDragging(false);
-        const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
-        if (files.length === 0) return;
+    // Shared upload logic
+    const uploadFiles = async (files) => {
         setUploadStatus('uploading');
         const formData = new FormData();
         files.forEach(file => formData.append('files', file));
@@ -140,6 +141,92 @@ export function Gallery({ alias }) {
             setUploadStatus('error');
             setTimeout(() => setUploadStatus(null), 3000);
         }
+    };
+
+    // D&D Logic
+    const handleDragEnter = (e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); };
+    const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); if (e.currentTarget.contains(e.relatedTarget)) return; setIsDragging(false); };
+    const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); };
+    const handleDrop = async (e) => {
+        e.preventDefault(); e.stopPropagation(); setIsDragging(false);
+        const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+        if (files.length === 0) return;
+        await uploadFiles(files);
+    };
+
+    // Handle file input change (for upload button)
+    const handleFileInputChange = async (e) => {
+        const files = Array.from(e.target.files).filter(file => file.type.startsWith('image/'));
+        if (files.length === 0) return;
+        await uploadFiles(files);
+        e.target.value = ''; // Reset input
+    };
+
+    // Paste upload handler
+    useEffect(() => {
+        const handlePaste = async (e) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+            const imageFiles = [];
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    const file = item.getAsFile();
+                    if (file) imageFiles.push(file);
+                }
+            }
+            if (imageFiles.length > 0) {
+                e.preventDefault();
+                await uploadFiles(imageFiles);
+            }
+        };
+        window.addEventListener('paste', handlePaste);
+        return () => window.removeEventListener('paste', handlePaste);
+    }, [alias]);
+
+    // Multi-select toggle
+    const togglePhotoSelection = (photoId) => {
+        setSelectedPhotos(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(photoId)) {
+                newSet.delete(photoId);
+            } else {
+                newSet.add(photoId);
+            }
+            return newSet;
+        });
+    };
+
+    // Exit select mode
+    const exitSelectMode = () => {
+        setIsSelectMode(false);
+        setSelectedPhotos(new Set());
+    };
+
+    // Batch delete
+    const handleBatchDelete = async () => {
+        if (selectedPhotos.size === 0) return;
+        const isConfirmed = await confirm({
+            title: "批量删除确认",
+            description: `确定要删除选中的 ${selectedPhotos.size} 张照片吗？此操作不可恢复。`,
+            confirmText: "删除",
+            isDestructive: true
+        });
+        if (isConfirmed) {
+            try {
+                const photosToDelete = allPhotos.filter(p => selectedPhotos.has(p.id));
+                for (const photo of photosToDelete) {
+                    await deleteMutation.mutateAsync({ alias, path: photo.path });
+                }
+                exitSelectMode();
+            } catch (e) {
+                alert("部分删除失败");
+            }
+        }
+    };
+
+    // Batch move (placeholder)
+    const handleBatchMove = () => {
+        alert("移动功能即将上线");
     };
 
     if (status === 'pending') return <div className="flex justify-center h-64 text-neutral-300 animate-pulse mt-12">Loading...</div>;
@@ -219,9 +306,70 @@ export function Gallery({ alias }) {
                 </div>
             )}
 
+            {/* Hidden file input for upload button */}
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileInputChange}
+                accept="image/*"
+                multiple
+                className="hidden"
+            />
 
-            <div className="flex items-center justify-center mb-8">
-                {/* Centered Control Group */}
+            {/* Top Bar */}
+            <div className="flex items-center justify-between mb-8">
+                {/* Left: Select Mode Toggle */}
+                <div className="flex items-center gap-2">
+                    {isSelectMode ? (
+                        <>
+                            {/* Exit select mode */}
+                            <button
+                                onClick={exitSelectMode}
+                                className="p-2 rounded-full hover:bg-neutral-100 text-neutral-500 hover:text-neutral-700 transition-colors"
+                                title="退出多选"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                            {/* Selected count */}
+                            <span className="text-sm text-neutral-500">
+                                已选择 <span className="font-semibold text-brand-600">{selectedPhotos.size}</span> 张
+                            </span>
+                            {/* Batch actions */}
+                            {selectedPhotos.size > 0 && (
+                                <>
+                                    <button
+                                        onClick={handleBatchMove}
+                                        className="px-3 py-1.5 text-sm rounded-full bg-neutral-100 text-neutral-600 hover:bg-neutral-200 transition-colors"
+                                    >
+                                        移动
+                                    </button>
+                                    <button
+                                        onClick={handleBatchDelete}
+                                        className="px-3 py-1.5 text-sm rounded-full bg-brand-50 text-brand-600 hover:bg-brand-100 transition-colors"
+                                    >
+                                        删除
+                                    </button>
+                                </>
+                            )}
+                        </>
+                    ) : (
+                        <button
+                            onClick={() => setIsSelectMode(true)}
+                            className="p-2 rounded-full hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 transition-colors"
+                            title="多选"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="9 11 12 14 22 4"></polyline>
+                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                            </svg>
+                        </button>
+                    )}
+                </div>
+
+                {/* Center: Density/Gap Control Group */}
                 <div className="flex items-center gap-2 group p-1 rounded-full hover:bg-neutral-50 hover:shadow-sm border border-transparent hover:border-neutral-100 transition-all">
                     {/* Left: Density Slider - Shows on Hover */}
                     <div className="w-0 overflow-hidden group-hover:w-32 transition-all duration-300 ease-out flex items-center opacity-0 group-hover:opacity-100">
@@ -252,6 +400,19 @@ export function Gallery({ alias }) {
                         />
                     </div>
                 </div>
+
+                {/* Right: Upload Button */}
+                <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2 rounded-full hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 transition-colors"
+                    title="上传图片"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                </button>
             </div>
 
             {allPhotos.length === 0 ? (
@@ -280,16 +441,32 @@ export function Gallery({ alias }) {
                             transition={{ duration: 0.4, type: "spring" }} // Smooth Layout Transition
                         >
                             <div
-                                className="rounded-sm overflow-hidden bg-neutral-100 transition-all duration-300 ease-out cursor-pointer hover:shadow-xl hover:shadow-neutral-900/10 hover:-translate-y-1 hover:brightness-[1.02]"
-                                onClick={() => setSelectedPhotoIndex(index)}
+                                className={`rounded-sm overflow-hidden bg-neutral-100 transition-all duration-300 ease-out cursor-pointer hover:shadow-xl hover:shadow-neutral-900/10 hover:-translate-y-1 hover:brightness-[1.02] ${isSelectMode && selectedPhotos.has(photo.id) ? 'ring-4 ring-brand-500 ring-offset-2' : ''}`}
+                                onClick={() => {
+                                    if (isSelectMode) {
+                                        togglePhotoSelection(photo.id);
+                                    } else {
+                                        setSelectedPhotoIndex(index);
+                                    }
+                                }}
                                 onContextMenu={(e) => handleContextMenu(e, photo)}
                             >
                                 <img
                                     src={`/api/v1/thumb?alias=${encodeURIComponent(alias)}&path=${encodeURIComponent(photo.path)}`}
                                     alt={photo.name}
                                     loading="lazy"
-                                    className="w-full h-auto block select-none"
+                                    className={`w-full h-auto block select-none transition-opacity ${isSelectMode && selectedPhotos.has(photo.id) ? 'opacity-80' : ''}`}
                                 />
+                                {/* Selection indicator */}
+                                {isSelectMode && (
+                                    <div className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selectedPhotos.has(photo.id) ? 'bg-brand-500 border-brand-500 text-white' : 'bg-white/80 border-neutral-300'}`} style={{ marginLeft: `${gap}px` }}>
+                                        {selectedPhotos.has(photo.id) && (
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </motion.div>
                     ))}
