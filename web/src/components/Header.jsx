@@ -9,7 +9,9 @@ export function Header({
     onAliasChange,
     onOpenSettings,
     // Gallery controls (passed from parent, controlled by Gallery via callbacks)
-    galleryControls
+    galleryControls,
+    // UI State
+    isSettingsOpen = false
 }) {
     const {
         // State values
@@ -40,14 +42,17 @@ export function Header({
                     P
                 </div>
                 {/* Album Capsule */}
-                <AlbumCapsule
-                    aliases={aliases}
-                    activeAlias={activeAlias}
-                    onAliasChange={onAliasChange}
-                />
-                {/* Selection info (only in select mode) */}
+                {/* Album Capsule - Hidden in Settings */}
+                {!isSettingsOpen && (
+                    <AlbumCapsule
+                        aliases={aliases}
+                        activeAlias={activeAlias}
+                        onAliasChange={onAliasChange}
+                    />
+                )}
+                {/* Selection info (only in select mode and not in settings) */}
                 <AnimatePresence>
-                    {isSelectMode && (
+                    {isSelectMode && !isSettingsOpen && (
                         <motion.div
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -87,8 +92,8 @@ export function Header({
                 </AnimatePresence>
             </div>
 
-            {/* Center: Density/Gap Control Group */}
-            {galleryControls && (
+            {/* Center: Density/Gap Control Group - Hidden in Settings */}
+            {galleryControls && !isSettingsOpen && (
                 <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 group p-1 rounded-full hover:bg-neutral-50 hover:shadow-sm border border-transparent hover:border-neutral-100 transition-all">
                     {/* Left: Density Slider - Shows on Hover */}
                     <div className="w-0 overflow-hidden group-hover:w-32 transition-all duration-300 ease-out flex items-center opacity-0 group-hover:opacity-100">
@@ -125,7 +130,7 @@ export function Header({
 
             {/* Right: Controls + Settings */}
             <div className="ml-auto flex items-center gap-1">
-                {galleryControls && (
+                {galleryControls && !isSettingsOpen && (
                     <>
                         {/* Select Mode Toggle */}
                         <button
@@ -200,16 +205,21 @@ export function Header({
                 )}
 
                 {/* Settings Button */}
-                <button
+                <motion.button
                     onClick={onOpenSettings}
-                    className="p-2 rounded-full hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 transition-colors"
-                    title="设置"
+                    animate={{ rotate: isSettingsOpen ? 90 : 0 }}
+                    transition={{ duration: 0.5 }}
+                    className={`p-2 rounded-full transition-colors ${isSettingsOpen
+                        ? 'bg-brand-600 text-white hover:bg-brand-600'
+                        : 'hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600'
+                        }`}
+                    title={isSettingsOpen ? "返回主页" : "设置"}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
                         <circle cx="12" cy="12" r="3"></circle>
                     </svg>
-                </button>
+                </motion.button>
             </div>
         </header>
     );

@@ -51,7 +51,8 @@ function AppContent() {
         aliases={aliases || []}
         activeAlias={activeAlias}
         onAliasChange={handleAliasChange}
-        onOpenSettings={() => setView('settings')}
+        onOpenSettings={() => setView(v => v === 'settings' ? 'gallery' : 'settings')}
+        isSettingsOpen={view === 'settings'}
         galleryControls={galleryControls}
       />
 
