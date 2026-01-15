@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAliases } from './api/hooks'
+import { Header } from './components/Header'
 import { Gallery } from './components/Gallery'
 import { Settings } from './components/Settings'
 import { ToastProvider } from './components/ui/Toast'
@@ -12,6 +13,9 @@ const queryClient = new QueryClient()
 function AppContent() {
   const [activeAlias, setActiveAlias] = useState(null)
   const [view, setView] = useState('gallery') // 'gallery' | 'settings'
+
+  // Gallery controls state (lifted here so Header can access)
+  const [galleryControls, setGalleryControls] = useState(null)
 
   // Fetch aliases
   const { data: aliases, isLoading: aliasesLoading } = useAliases()
@@ -28,19 +32,38 @@ function AppContent() {
     setView('gallery');
   };
 
+  // Callback for Gallery to register its controls
+  const handleGalleryControlsReady = useCallback((controls) => {
+    setGalleryControls(controls);
+  }, []);
+
+  // Clear controls when leaving gallery view
+  useEffect(() => {
+    if (view !== 'gallery') {
+      setGalleryControls(null);
+    }
+  }, [view]);
+
   return (
-    <div className="min-h-screen bg-white text-neutral-900 flex overflow-hidden font-sans">
-      {/* Main Content */}
+    <div className="h-screen bg-white text-neutral-900 flex flex-col overflow-hidden font-sans">
+      {/* Global Header - Always visible, never scrolls */}
+      <Header
+        aliases={aliases || []}
+        activeAlias={activeAlias}
+        onAliasChange={handleAliasChange}
+        onOpenSettings={() => setView('settings')}
+        galleryControls={galleryControls}
+      />
+
+      {/* Main Content - Scrollable area below header */}
       <main
-        className="flex-1 h-screen overflow-hidden relative bg-white"
+        className="flex-1 overflow-hidden relative bg-white"
         onMouseMove={(e) => {
           const container = e.currentTarget.querySelector('.custom-scrollbar');
           if (!container) return;
 
-          // Set target opacity to visible
           container.dataset.targetOpacity = '0.5';
 
-          // Start animation if not already running
           if (!container.dataset.animating) {
             container.dataset.animating = 'true';
             const animate = () => {
@@ -54,7 +77,6 @@ function AppContent() {
                 return;
               }
 
-              // Ease towards target
               const next = current + diff * 0.15;
               container.style.setProperty('--scrollbar-opacity', next.toString());
               requestAnimationFrame(animate);
@@ -62,12 +84,10 @@ function AppContent() {
             requestAnimationFrame(animate);
           }
 
-          // Clear existing fade-out timeout
           if (container.dataset.timeoutId) {
             clearTimeout(parseInt(container.dataset.timeoutId));
           }
 
-          // Set timeout to fade out
           const timeoutId = setTimeout(() => {
             container.dataset.targetOpacity = '0';
             if (!container.dataset.animating) {
@@ -83,7 +103,7 @@ function AppContent() {
                   return;
                 }
 
-                const next = current + diff * 0.08; // Slower fade out
+                const next = current + diff * 0.08;
                 container.style.setProperty('--scrollbar-opacity', next.toString());
                 requestAnimationFrame(animateOut);
               };
@@ -131,9 +151,7 @@ function AppContent() {
             >
               <Gallery
                 alias={activeAlias}
-                aliases={aliases || []}
-                onAliasChange={handleAliasChange}
-                onOpenSettings={() => setView('settings')}
+                onControlsReady={handleGalleryControlsReady}
               />
             </motion.div>
           )}
