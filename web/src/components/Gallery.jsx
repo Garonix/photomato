@@ -39,6 +39,7 @@ export function Gallery({ alias }) {
         return saved || 'masonry';
     });
     const [currentPage, setCurrentPage] = useState(1);
+    const [uploadRotation, setUploadRotation] = useState(0);
 
     // File upload input ref
     const fileInputRef = useRef(null);
@@ -539,11 +540,26 @@ export function Gallery({ alias }) {
 
                     {/* Upload Button */}
                     <button
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={() => {
+                            setUploadRotation(prev => prev + 90);
+                            fileInputRef.current?.click();
+                        }}
                         className="p-2 rounded-full hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 transition-colors"
                         title="上传图片"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="transition-transform duration-500 ease-out"
+                            style={{ transform: `rotate(${uploadRotation}deg)` }}
+                        >
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
@@ -560,15 +576,18 @@ export function Gallery({ alias }) {
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
+                            width="24"
+                            height="26"
                             viewBox="0 0 24 24"
-                            fill="currentColor"
-                            stroke="none"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
                             className="transition-transform duration-500"
                             style={{ transform: viewMode === 'masonry' ? 'rotate(0deg)' : 'rotate(180deg)' }}
                         >
-                            <polygon points="12,16 4,8 20,8"></polygon>
+                            <path d="M5 7l7 10 7-10H5z" />
                         </svg>
                     </button>
                 </div>
