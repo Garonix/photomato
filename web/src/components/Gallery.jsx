@@ -16,7 +16,7 @@ const baseBreakpoints = {
     640: 1
 };
 
-export function Gallery({ alias }) {
+export function Gallery({ alias, onOpenSettings }) {
     const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } = usePhotos(alias);
     const uploadMutation = useUploadPhoto();
     const deleteMutation = useDeletePhoto();
@@ -576,18 +576,30 @@ export function Gallery({ alias }) {
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            width="24"
-                            height="26"
+                            width="18"
+                            height="18"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
-                            strokeWidth="1.5"
+                            strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             className="transition-transform duration-500"
                             style={{ transform: viewMode === 'masonry' ? 'rotate(0deg)' : 'rotate(180deg)' }}
                         >
-                            <path d="M5 7l7 10 7-10H5z" />
+                            <path d="M4 6 L12 19 L20 6 H4 z" />
+                        </svg>
+                    </button>
+
+                    {/* Settings Button */}
+                    <button
+                        onClick={onOpenSettings}
+                        className="p-2 rounded-full hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 transition-colors"
+                        title="设置"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
                         </svg>
                     </button>
                 </div>
