@@ -128,9 +128,9 @@ export function AlbumCapsule({ aliases = [], activeAlias, onAliasChange }) {
             <button
                 ref={buttonRef}
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200/80 transition-colors text-sm font-medium text-neutral-700 w-[160px] group"
+                className="flex items-center justify-center px-4 py-2 rounded-full bg-transparent hover:bg-brand-50/50 border-2 border-brand-500 transition-all duration-200 w-[140px] group cursor-pointer"
             >
-                <div className="relative h-5 overflow-hidden flex-1 min-w-0">
+                <div className="relative h-5 overflow-hidden text-center">
                     <AnimatePresence mode="popLayout" initial={false}>
                         <motion.span
                             key={previewAlias}
@@ -138,40 +138,27 @@ export function AlbumCapsule({ aliases = [], activeAlias, onAliasChange }) {
                             animate={{ y: 0, opacity: 1 }}
                             exit={{ y: getDirection() * -20, opacity: 0 }}
                             transition={{ duration: 0.2, ease: 'easeOut' }}
-                            className="block truncate"
+                            className="block text-sm font-semibold text-brand-600 text-center"
+                            style={{
+                                letterSpacing: '0.05em',
+                                fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei UI", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+                            }}
                         >
                             {previewAlias || '选择相册'}
                         </motion.span>
                     </AnimatePresence>
                 </div>
-                {/* Chevron */}
-                <motion.svg
-                    animate={{ rotate: isOpen ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-neutral-400 group-hover:text-neutral-600 transition-colors flex-shrink-0"
-                >
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                </motion.svg>
             </button>
 
             {/* Dropdown */}
-            <AnimatePresence>
+            < AnimatePresence >
                 {isOpen && (
                     <motion.div
                         initial={{ opacity: 0, y: -8, scale: 0.96 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -8, scale: 0.96 }}
                         transition={{ duration: 0.15, ease: 'easeOut' }}
-                        className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-neutral-100 overflow-hidden z-50"
+                        className="absolute top-full left-0 mt-2 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-neutral-100/80 overflow-hidden z-50"
                     >
                         {/* Search Input */}
                         <div className="p-2 border-b border-neutral-100">
@@ -181,7 +168,11 @@ export function AlbumCapsule({ aliases = [], activeAlias, onAliasChange }) {
                                 placeholder="搜索相册..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full px-3 py-2 text-sm bg-neutral-50 rounded-lg border-none outline-none focus:ring-2 focus:ring-brand-500/20 placeholder:text-neutral-400"
+                                className="w-full px-3 py-2 text-sm bg-neutral-50 rounded-lg border-none outline-none focus:ring-2 focus:ring-neutral-200 placeholder:text-neutral-400"
+                                style={{
+                                    letterSpacing: '0.03em',
+                                    fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei UI", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+                                }}
                             />
                         </div>
 
@@ -196,12 +187,16 @@ export function AlbumCapsule({ aliases = [], activeAlias, onAliasChange }) {
                                     <button
                                         key={alias.name}
                                         onClick={() => handleSelect(alias.name)}
-                                        className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center gap-2 ${alias.name === previewAlias
-                                            ? 'bg-brand-50 text-brand-600 font-medium'
+                                        className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center gap-3 ${alias.name === previewAlias
+                                            ? 'bg-brand-50 text-brand-600 font-semibold'
                                             : 'text-neutral-600 hover:bg-neutral-50'
                                             }`}
+                                        style={{
+                                            letterSpacing: '0.03em',
+                                            fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei UI", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+                                        }}
                                     >
-                                        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${alias.name === previewAlias ? 'bg-brand-500' : 'bg-neutral-300'
+                                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${alias.name === previewAlias ? 'bg-brand-600' : 'bg-transparent'
                                             }`}></span>
                                         <span className="truncate">{alias.name}</span>
                                     </button>
@@ -209,8 +204,9 @@ export function AlbumCapsule({ aliases = [], activeAlias, onAliasChange }) {
                             )}
                         </div>
                     </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
+                )
+                }
+            </AnimatePresence >
+        </div >
     );
 }
