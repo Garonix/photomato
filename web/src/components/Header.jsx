@@ -37,19 +37,37 @@ export function Header({
         <header className="h-14 bg-white border-b border-neutral-100 flex items-center px-6 flex-shrink-0 z-40">
             {/* Left: Logo + Album Capsule */}
             <div className="flex items-center gap-3">
-                {/* Logo Placeholder */}
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-red-500 flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0">
-                    P
-                </div>
-                {/* Album Capsule */}
+                {/* Logo Placeholder - Hidden in Settings */}
+                <AnimatePresence>
+                    {!isSettingsOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            transition={{ duration: 0.3 }}
+                            className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-red-500 flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0"
+                        >
+                            P
+                        </motion.div>
+                    )}
+                </AnimatePresence>
                 {/* Album Capsule - Hidden in Settings */}
-                {!isSettingsOpen && (
-                    <AlbumCapsule
-                        aliases={aliases}
-                        activeAlias={activeAlias}
-                        onAliasChange={onAliasChange}
-                    />
-                )}
+                <AnimatePresence>
+                    {!isSettingsOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <AlbumCapsule
+                                aliases={aliases}
+                                activeAlias={activeAlias}
+                                onAliasChange={onAliasChange}
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
                 {/* Selection info (only in select mode and not in settings) */}
                 <AnimatePresence>
                     {isSelectMode && !isSettingsOpen && (
@@ -130,79 +148,87 @@ export function Header({
 
             {/* Right: Controls + Settings */}
             <div className="ml-auto flex items-center gap-1">
-                {galleryControls && !isSettingsOpen && (
-                    <>
-                        {/* Select Mode Toggle */}
-                        <button
-                            onClick={onToggleSelectMode}
-                            className={`p-2 rounded-full transition-colors ${isSelectMode ? 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200' : 'hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600'}`}
-                            title={isSelectMode ? "退出多选" : "多选"}
+                <AnimatePresence>
+                    {galleryControls && !isSettingsOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            transition={{ duration: 0.3 }}
+                            className="flex items-center gap-1"
                         >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className="transition-transform duration-500"
-                                style={{ transform: isSelectMode ? 'rotate(45deg)' : 'rotate(0deg)' }}
+                            {/* Select Mode Toggle */}
+                            <button
+                                onClick={onToggleSelectMode}
+                                className={`p-2 rounded-full transition-colors ${isSelectMode ? 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200' : 'hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600'}`}
+                                title={isSelectMode ? "退出多选" : "多选"}
                             >
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                            </svg>
-                        </button>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="transition-transform duration-500"
+                                    style={{ transform: isSelectMode ? 'rotate(45deg)' : 'rotate(0deg)' }}
+                                >
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                </svg>
+                            </button>
 
-                        {/* Upload Button */}
-                        <button
-                            onClick={onUploadClick}
-                            className="p-2 rounded-full hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 transition-colors"
-                            title="上传图片"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className="transition-transform duration-500 ease-out"
-                                style={{ transform: `rotate(${uploadRotation}deg)` }}
+                            {/* Upload Button */}
+                            <button
+                                onClick={onUploadClick}
+                                className="p-2 rounded-full hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 transition-colors"
+                                title="上传图片"
                             >
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                        </button>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="transition-transform duration-500 ease-out"
+                                    style={{ transform: `rotate(${uploadRotation}deg)` }}
+                                >
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </button>
 
-                        {/* View Mode Toggle Button */}
-                        <button
-                            onClick={onViewModeToggle}
-                            className="p-2 rounded-full hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 transition-colors"
-                            title={viewMode === 'masonry' ? '切换到分页视图' : '切换到瀑布流视图'}
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className="transition-transform duration-500"
-                                style={{ transform: viewMode === 'masonry' ? 'rotate(0deg)' : 'rotate(180deg)' }}
+                            {/* View Mode Toggle Button */}
+                            <button
+                                onClick={onViewModeToggle}
+                                className="p-2 rounded-full hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 transition-colors"
+                                title={viewMode === 'masonry' ? '切换到分页视图' : '切换到瀑布流视图'}
                             >
-                                <path d="M4 6 L12 19 L20 6 H4 z" />
-                            </svg>
-                        </button>
-                    </>
-                )}
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="transition-transform duration-500"
+                                    style={{ transform: viewMode === 'masonry' ? 'rotate(0deg)' : 'rotate(180deg)' }}
+                                >
+                                    <path d="M4 6 L12 19 L20 6 H4 z" />
+                                </svg>
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* Settings Button */}
                 <motion.button
