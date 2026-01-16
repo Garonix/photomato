@@ -6,14 +6,18 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
     const [showControls, setShowControls] = useState(true);
     const controlsTimeoutRef = useRef(null);
     const imgControls = useAnimation();
+    const swipeControls = useAnimation();
+    const backdropInteractionRef = useRef(false);
 
     // Reset scale when photo changes
     useEffect(() => {
         setScale(1);
-        // Instant reset then animate in
-        imgControls.set({ opacity: 0, scale: 0.95, x: 0, y: 0 });
-        imgControls.start({ opacity: 1, scale: 1, x: 0, y: 0, transition: { duration: 0.3, ease: "easeOut" } });
-    }, [photo.id, imgControls]);
+        // Reset both controls
+        imgControls.set({ opacity: 0, scale: 0.95 });
+        swipeControls.set({ x: 0 });
+
+        imgControls.start({ opacity: 1, scale: 1, transition: { duration: 0.3, ease: "easeOut" } });
+    }, [photo.id, imgControls, swipeControls]);
 
     // Handle Mouse Move for auto-hiding
     const handleMouseMove = () => {
@@ -31,34 +35,38 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
                 ? Math.min(prev + delta, 4)
                 : Math.max(prev + delta, 0.5);
 
-            // Animation logic:
+            // Zooming logic on the IMAGE
             const anim = { scale: newScale, transition: { type: "spring", stiffness: 300, damping: 30 } };
-            // If zooming OUT (delta < 0) or resetting, force reset position
+            // If zooming OUT (delta < 0) or resetting, force reset position (visual center)
             if (delta < 0 || newScale <= 1) {
                 anim.x = 0;
                 anim.y = 0;
             }
             imgControls.start(anim);
 
+            // If returning to 1 or less, ensure swipe wrapper is centered too
+            if (newScale <= 1) {
+                swipeControls.start({ x: 0 });
+            }
+
             return newScale;
         });
     };
 
-    const handleDragEnd = (event, info) => {
-        // Only handle swipe if at normal scale
-        if (scale <= 1) {
-            const SWIPE_THRESHOLD = 50;
-            const { offset, velocity } = info;
+    const handleSwipeDragEnd = (event, info) => {
+        if (scale > 1) return; // Should not happen due to drag disable, but safety check
 
-            if (offset.x > SWIPE_THRESHOLD || velocity.x > 500) {
-                if (hasPrev) onPrev();
-                else imgControls.start({ x: 0, transition: { type: "spring" } }); // Snap back
-            } else if (offset.x < -SWIPE_THRESHOLD || velocity.x < -500) {
-                if (hasNext) onNext();
-                else imgControls.start({ x: 0, transition: { type: "spring" } }); // Snap back
-            } else {
-                imgControls.start({ x: 0, transition: { type: "spring" } }); // Snap back
-            }
+        const { offset, velocity } = info;
+        const SWIPE_THRESHOLD = 50;
+        // Logic: High velocity OR significant distance
+        if (offset.x > 100 || (offset.x > SWIPE_THRESHOLD && velocity.x > 500)) {
+            if (hasPrev) onPrev();
+            else swipeControls.start({ x: 0, transition: { type: "spring" } });
+        } else if (offset.x < -100 || (offset.x < -SWIPE_THRESHOLD && velocity.x < -500)) {
+            if (hasNext) onNext();
+            else swipeControls.start({ x: 0, transition: { type: "spring" } });
+        } else {
+            swipeControls.start({ x: 0, transition: { type: "spring" } });
         }
     };
 
@@ -81,12 +89,30 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
             window.removeEventListener('keydown', handleKeyDown);
             if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
         };
-    }, [onClose, onNext, onPrev, imgControls]);
+    }, [onClose, onNext, onPrev, imgControls, swipeControls]);
 
     if (!photo) return null;
 
     const handleZoomIn = (e) => { e?.stopPropagation(); updateScale(0.25); };
     const handleZoomOut = (e) => { e?.stopPropagation(); updateScale(-0.25); };
+
+    // Robust Close Logic: 
+    // Only close if interaction STARTED and ENDED on the backdrop
+    const handleBackdropPointerDown = (e) => {
+        // e.target check ensures we aren't clicking the image or controls
+        if (e.target === e.currentTarget) {
+            backdropInteractionRef.current = true;
+        } else {
+            backdropInteractionRef.current = false;
+        }
+    };
+
+    const handleBackdropPointerUp = (e) => {
+        if (e.target === e.currentTarget && backdropInteractionRef.current) {
+            onClose();
+        }
+        backdropInteractionRef.current = false; // Reset
+    };
 
     const handleWheel = (e) => {
         if (e.ctrlKey || e.metaKey) { e.preventDefault(); }
@@ -103,7 +129,8 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] bg-white/70 backdrop-blur-md flex flex-col items-center justify-center overflow-hidden"
-            onClick={onClose}
+            onPointerDown={handleBackdropPointerDown}
+            onPointerUp={handleBackdropPointerUp}
             onWheel={handleWheel}
         >
             {/* Top Bar (Info Only) */}
@@ -148,28 +175,38 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
                 )}
             </AnimatePresence>
 
-            {/* Main Image */}
-            <motion.img
-                key={photo.id} // Re-mount on change for transition
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={imgControls}
-                src={downloadUrl}
-                alt={photo.name}
-                className="max-w-[85vw] max-h-[85vh] object-contain shadow-2xl select-none"
-                onClick={e => e.stopPropagation()}
-                // Drag Logic:
-                // scale > 1: Free drag (pan)
-                // scale <= 1: X-axis drag (swipe)
-                drag={scale > 1 ? true : "x"}
-                onDragEnd={handleDragEnd}
-                dragMomentum={false}
-                dragElastic={scale > 1 ? 0 : 0.2} // Elasticity only for swipe feel
-                dragConstraints={scale > 1
-                    ? { left: -100 * scale, right: 100 * scale, top: -100 * scale, bottom: 100 * scale }
-                    : { left: 0, right: 0 } // Snap point is center, but elastic allows pull
-                }
-                draggable="false"
-            />
+            {/* Swipe Container (Handles Scale=1 Gestures) */}
+            <motion.div
+                className="w-full h-full flex items-center justify-center touch-none"
+                animate={swipeControls}
+                drag={scale <= 1 ? "x" : false}
+                dragConstraints={{ left: 0, right: 0 }} // Elastic snap back
+                dragElastic={0.2}
+                onDragEnd={handleSwipeDragEnd}
+            >
+                {/* Main Image (Handles Scale>1 Gestures) */}
+                <motion.img
+                    key={photo.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={imgControls}
+                    src={downloadUrl}
+                    alt={photo.name}
+                    className="max-w-[85vw] max-h-[85vh] object-contain shadow-2xl select-none"
+                    onClick={e => e.stopPropagation()}
+
+                    // Pan Logic (Only when zoomed)
+                    drag={scale > 1}
+                    dragMomentum={false}
+                    dragElastic={0}
+                    dragConstraints={{
+                        left: -100 * scale,
+                        right: 100 * scale,
+                        top: -100 * scale,
+                        bottom: 100 * scale
+                    }}
+                    draggable="false"
+                />
+            </motion.div>
 
             {/* Bottom Zoom Controls */}
             <AnimatePresence>

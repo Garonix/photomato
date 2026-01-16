@@ -757,6 +757,8 @@ export function Gallery({ alias, onControlsReady }) {
                         onClose={handleClose}
                         onNext={handleNext}
                         onPrev={handlePrev}
+                        hasNext={selectedPhotoIndex + 1 < allPhotos.length}
+                        hasPrev={selectedPhotoIndex > 0}
                     />
                 )}
             </AnimatePresence>
