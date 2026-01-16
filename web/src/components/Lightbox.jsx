@@ -10,7 +10,9 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
     // Reset scale when photo changes
     useEffect(() => {
         setScale(1);
-        imgControls.start({ opacity: 1, scale: 1, x: 0, y: 0, transition: { duration: 0.3 } });
+        // Instant reset then animate in
+        imgControls.set({ opacity: 0, scale: 0.95, x: 0, y: 0 });
+        imgControls.start({ opacity: 1, scale: 1, x: 0, y: 0, transition: { duration: 0.3, ease: "easeOut" } });
     }, [photo.id, imgControls]);
 
     // Handle Mouse Move for auto-hiding
@@ -30,9 +32,8 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
                 : Math.max(prev + delta, 0.5);
 
             // Animation logic:
-            // 1. Always animate to new scale
-            // 2. If zooming OUT (delta < 0), force reset position (x=0, y=0)
-            const anim = { scale: newScale };
+            const anim = { scale: newScale, transition: { type: "spring", stiffness: 300, damping: 30 } };
+            // If zooming OUT (delta < 0) or resetting, force reset position
             if (delta < 0 || newScale <= 1) {
                 anim.x = 0;
                 anim.y = 0;
@@ -150,10 +151,8 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
             {/* Main Image */}
             <motion.img
                 key={photo.id} // Re-mount on change for transition
-                initial={{ opacity: 0.5, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={imgControls}
-                exit={{ opacity: 0 }} // Simple fade out
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 src={downloadUrl}
                 alt={photo.name}
                 className="max-w-[85vw] max-h-[85vh] object-contain shadow-2xl select-none"
