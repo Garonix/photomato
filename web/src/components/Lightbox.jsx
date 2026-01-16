@@ -8,6 +8,7 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
     const imgControls = useAnimation();
     const swipeControls = useAnimation();
     const backdropInteractionRef = useRef(false);
+    const pointerStartRef = useRef({ x: 0, y: 0 });
 
     // Reset scale when photo changes
     useEffect(() => {
@@ -97,21 +98,33 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
     const handleZoomOut = (e) => { e?.stopPropagation(); updateScale(-0.25); };
 
     // Robust Close Logic: 
-    // Only close if interaction STARTED and ENDED on the backdrop
+    // Close if: 1) clicked on closeable area (not image/controls) AND 2) didn't drag far
     const handleBackdropPointerDown = (e) => {
-        // e.target check ensures we aren't clicking the image or controls
-        if (e.target === e.currentTarget) {
-            backdropInteractionRef.current = true;
-        } else {
-            backdropInteractionRef.current = false;
-        }
+        pointerStartRef.current = { x: e.clientX, y: e.clientY };
+
+        // Check if target is closeable (has data-closeable or is the backdrop itself)
+        const isCloseable = e.target.closest('[data-closeable]') || e.target === e.currentTarget;
+        const isImage = e.target.tagName === 'IMG';
+        const isControl = e.target.closest('button') || e.target.closest('a') || e.target.closest('[data-control]');
+
+        backdropInteractionRef.current = isCloseable && !isImage && !isControl;
     };
 
     const handleBackdropPointerUp = (e) => {
-        if (e.target === e.currentTarget && backdropInteractionRef.current) {
+        if (!backdropInteractionRef.current) {
+            return;
+        }
+
+        // Calculate distance moved
+        const dx = Math.abs(e.clientX - pointerStartRef.current.x);
+        const dy = Math.abs(e.clientY - pointerStartRef.current.y);
+
+        // Only close if moved less than 10px (genuine click, not swipe)
+        if (dx < 10 && dy < 10) {
             onClose();
         }
-        backdropInteractionRef.current = false; // Reset
+
+        backdropInteractionRef.current = false;
     };
 
     const handleWheel = (e) => {
@@ -177,6 +190,7 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
 
             {/* Swipe Container (Handles Scale=1 Gestures) */}
             <motion.div
+                data-closeable
                 className="w-full h-full flex items-center justify-center touch-none"
                 animate={swipeControls}
                 drag={scale <= 1 ? "x" : false}
