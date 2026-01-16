@@ -665,13 +665,11 @@ export function Gallery({ alias, onControlsReady }) {
                                             animate={{ opacity: 1, scale: 1 }}
                                             exit={{ opacity: 0, scale: 0.5 }}
                                             transition={{ duration: 0.2 }}
-                                            className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors duration-200 ${selectedPhotos.has(photo.id) ? 'bg-brand-500 border-brand-500 text-white' : 'bg-white/80 border-neutral-300'}`}
+                                            className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors duration-200 ${selectedPhotos.has(photo.id) ? 'bg-brand-500 border-brand-500' : 'bg-white/80 border-neutral-300'}`}
                                         >
-                                            {selectedPhotos.has(photo.id) && (
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                                </svg>
-                                            )}
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
@@ -774,13 +772,11 @@ export function Gallery({ alias, onControlsReady }) {
                                             animate={{ opacity: 1, scale: 1 }}
                                             exit={{ opacity: 0, scale: 0.5 }}
                                             transition={{ duration: 0.2 }}
-                                            className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors duration-200 ${selectedPhotos.has(photo.id) ? 'bg-brand-500 border-brand-500 text-white' : 'bg-white/80 border-neutral-300'}`}
+                                            className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors duration-200 ${selectedPhotos.has(photo.id) ? 'bg-brand-500 border-brand-500' : 'bg-white/80 border-neutral-300'}`}
                                         >
-                                            {selectedPhotos.has(photo.id) && (
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                                </svg>
-                                            )}
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
