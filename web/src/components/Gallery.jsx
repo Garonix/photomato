@@ -43,6 +43,13 @@ export function Gallery({ alias, onControlsReady }) {
         exitSelectMode,
     } = usePhotoSelection();
 
+    // Performant mode switching: interactionRef + CSS class
+    // This avoids re-rendering all PhotoCards when isSelectMode changes
+    const interactionRef = useRef({ isSelectMode: false });
+    useEffect(() => {
+        interactionRef.current.isSelectMode = isSelectMode;
+    }, [isSelectMode]);
+
     // Upload hook
     const {
         isDragging,
@@ -335,7 +342,7 @@ export function Gallery({ alias, onControlsReady }) {
                             <PhotoCard
                                 photo={photo}
                                 alias={alias}
-                                isSelectMode={isSelectMode}
+                                // isSelectMode={isSelectMode} // Removed isSelectMode prop
                                 isSelected={selectedPhotos.has(photo.id)}
                                 variant="masonry"
                                 onSelect={togglePhotoSelection}
@@ -344,6 +351,7 @@ export function Gallery({ alias, onControlsReady }) {
                                 onSelectionMouseDown={handleSelectionMouseDown}
                                 onSelectionMouseEnter={handleSelectionMouseEnter}
                                 setIsSelectMode={setIsSelectMode}
+                                interactionRef={interactionRef} // Added interactionRef
                             />
                         </motion.div>
                     ))}
@@ -361,7 +369,7 @@ export function Gallery({ alias, onControlsReady }) {
                             <PhotoCard
                                 photo={photo}
                                 alias={alias}
-                                isSelectMode={isSelectMode}
+                                // isSelectMode={isSelectMode} // Removed isSelectMode prop
                                 isSelected={selectedPhotos.has(photo.id)}
                                 variant="grid"
                                 onSelect={togglePhotoSelection}
@@ -370,6 +378,7 @@ export function Gallery({ alias, onControlsReady }) {
                                 onSelectionMouseDown={handleSelectionMouseDown}
                                 onSelectionMouseEnter={handleSelectionMouseEnter}
                                 setIsSelectMode={setIsSelectMode}
+                                interactionRef={interactionRef} // Added interactionRef
                             />
                         </motion.div>
                     ))}
