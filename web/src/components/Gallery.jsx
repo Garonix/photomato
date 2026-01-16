@@ -163,9 +163,30 @@ export function Gallery({ alias, onControlsReady }) {
     const closeContextMenu = () => setContextMenu(null);
     useEffect(() => {
         const handleClick = () => closeContextMenu();
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                if (showMoveDialog) {
+                    setShowMoveDialog(false);
+                    e.stopPropagation(); // Prevent bubbling if needed
+                } else if (isSelectMode) {
+                    exitSelectMode();
+                } else if (fileInputRef.current) {
+                    // Try to reset file input if "upload window" meant forcing focus out, 
+                    // but browser file picker handles its own ESC. 
+                    // This is just a safety for state.
+                    if (uploadStatus === 'uploading') {
+                        // Maybe cancel upload? For now just ignore.
+                    }
+                }
+            }
+        };
         window.addEventListener('click', handleClick);
-        return () => window.removeEventListener('click', handleClick);
-    }, []);
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('click', handleClick);
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [showMoveDialog, isSelectMode, uploadStatus]);
 
     const handleMenuAction = async (action) => {
         if (!contextMenu) return;

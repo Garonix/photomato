@@ -44,6 +44,17 @@ function AppContent() {
     }
   }, [view]);
 
+  // Global ESC handler for Settings
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape' && view === 'settings') {
+        setView('gallery');
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [view]);
+
   return (
     <div className="h-screen bg-white text-neutral-900 flex flex-col overflow-hidden font-sans">
       {/* Global Header - Always visible, never scrolls */}
