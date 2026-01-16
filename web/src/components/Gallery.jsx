@@ -364,17 +364,46 @@ export function Gallery({ alias, onControlsReady }) {
         });
     };
 
-    // Stop drag selection on mouse up (global listener)
+    // Stop drag selection on mouse up / touch end (global listener)
     useEffect(() => {
-        const handleMouseUp = () => {
+        const handlePointerUp = () => {
             if (isDragSelecting) {
                 setIsDragSelecting(false);
                 setDragSelectMode(null);
             }
         };
-        window.addEventListener('mouseup', handleMouseUp);
-        return () => window.removeEventListener('mouseup', handleMouseUp);
+        window.addEventListener('mouseup', handlePointerUp);
+        window.addEventListener('touchend', handlePointerUp);
+        return () => {
+            window.removeEventListener('mouseup', handlePointerUp);
+            window.removeEventListener('touchend', handlePointerUp);
+        };
     }, [isDragSelecting]);
+
+    // Handle touch move for drag selection (on the gallery container)
+    const handleTouchMove = (e) => {
+        if (!isSelectMode || !isDragSelecting) return;
+
+        const touch = e.touches[0];
+        const element = document.elementFromPoint(touch.clientX, touch.clientY);
+
+        // Find the photo container by traversing up
+        const photoContainer = element?.closest('[data-photo-id]');
+        if (photoContainer) {
+            const photoId = photoContainer.dataset.photoId;
+            if (photoId) {
+                setSelectedPhotos(prev => {
+                    const newSet = new Set(prev);
+                    if (dragSelectMode === 'select') {
+                        newSet.add(photoId);
+                    } else {
+                        newSet.delete(photoId);
+                    }
+                    return newSet;
+                });
+            }
+        }
+    };
 
     // Exit select mode
     const exitSelectMode = () => {
@@ -446,6 +475,7 @@ export function Gallery({ alias, onControlsReady }) {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
+            onTouchMove={handleTouchMove}
         >
             {/* Context Menu */}
             {contextMenu && (
@@ -549,6 +579,7 @@ export function Gallery({ alias, onControlsReady }) {
                             transition={{ duration: 0.4, type: "spring" }}
                         >
                             <div
+                                data-photo-id={photo.id}
                                 className={`relative rounded-sm overflow-hidden bg-neutral-100 transition-all duration-300 ease-out cursor-pointer hover:shadow-xl hover:shadow-neutral-900/10 hover:-translate-y-1 hover:brightness-[1.02] ${isSelectMode && selectedPhotos.has(photo.id) ? 'ring-4 ring-brand-500 ring-offset-2' : ''}`}
                                 onClick={(e) => {
                                     if (isSelectMode) {
@@ -589,6 +620,58 @@ export function Gallery({ alias, onControlsReady }) {
                                 }}
                                 onMouseEnter={() => handleSelectionMouseEnter(photo.id)}
                                 onContextMenu={(e) => handleContextMenu(e, photo)}
+                                // Touch events for mobile
+                                onTouchStart={(e) => {
+                                    const touch = e.touches[0];
+                                    // Store touch start position for tap detection
+                                    e.currentTarget._touchStart = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+
+                                    // Clear any existing timer
+                                    if (longPressTimerRef.current) {
+                                        clearTimeout(longPressTimerRef.current);
+                                    }
+                                    if (!isSelectMode) {
+                                        // Start long press timer to enter select mode
+                                        longPressTimerRef.current = setTimeout(() => {
+                                            setIsSelectMode(true);
+                                            handleSelectionMouseDown(photo.id, true);
+                                            // Mark as long press triggered
+                                            e.currentTarget._longPressTriggered = true;
+                                        }, 500);
+                                    } else {
+                                        // In select mode, prepare for potential drag
+                                        handleSelectionMouseDown(photo.id);
+                                    }
+                                }}
+                                onTouchEnd={(e) => {
+                                    if (longPressTimerRef.current) {
+                                        clearTimeout(longPressTimerRef.current);
+                                        longPressTimerRef.current = null;
+                                    }
+
+                                    // Check if this was a tap (short press, minimal movement)
+                                    const touchStart = e.currentTarget._touchStart;
+                                    const longPressTriggered = e.currentTarget._longPressTriggered;
+                                    e.currentTarget._longPressTriggered = false;
+
+                                    if (isSelectMode && touchStart && !longPressTriggered) {
+                                        const touch = e.changedTouches[0];
+                                        const dx = Math.abs(touch.clientX - touchStart.x);
+                                        const dy = Math.abs(touch.clientY - touchStart.y);
+                                        const duration = Date.now() - touchStart.time;
+
+                                        // If minimal movement and quick tap, toggle selection
+                                        if (dx < 10 && dy < 10 && duration < 300) {
+                                            togglePhotoSelection(photo.id);
+                                        }
+                                    }
+                                }}
+                                onTouchCancel={() => {
+                                    if (longPressTimerRef.current) {
+                                        clearTimeout(longPressTimerRef.current);
+                                        longPressTimerRef.current = null;
+                                    }
+                                }}
                             >
                                 <img
                                     src={`/api/v1/thumb?alias=${encodeURIComponent(alias)}&path=${encodeURIComponent(photo.path)}`}

@@ -45,7 +45,7 @@ export function Header({
             <div className="flex items-center gap-3">
                 {/* Album Capsule - Hidden in Settings */}
                 <AnimatePresence>
-                    {!isSettingsOpen && !(isMobile && isControlsExpanded) && (
+                    {!isSettingsOpen && !(isMobile && isControlsExpanded) && !(isMobile && isSelectMode) && (
                         <motion.div
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -71,9 +71,11 @@ export function Header({
                             transition={{ duration: 0.3 }}
                             className="flex items-center gap-2"
                         >
-                            <span className="text-sm text-neutral-500">
-                                已选择 <span className="font-semibold text-brand-600">{selectedCount}</span> 张
-                            </span>
+                            {!isMobile && (
+                                <span className="text-sm text-neutral-500">
+                                    已选择 <span className="font-semibold text-brand-600">{selectedCount}</span> 张
+                                </span>
+                            )}
                             <AnimatePresence>
                                 {selectedCount > 0 && (
                                     <motion.div
