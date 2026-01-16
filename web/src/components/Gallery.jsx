@@ -583,9 +583,10 @@ export function Gallery({ alias, onControlsReady }) {
                                 className={`relative rounded-sm overflow-hidden bg-neutral-100 transition-all duration-300 ease-out cursor-pointer hover:shadow-xl hover:shadow-neutral-900/10 hover:-translate-y-1 hover:brightness-[1.02] ${isSelectMode && selectedPhotos.has(photo.id) ? 'ring-4 ring-brand-500 ring-offset-2' : ''}`}
                                 onClick={(e) => {
                                     if (isSelectMode) {
-                                        // Only toggle on keyboard click (detail === 0)
-                                        // Mouse clicks (detail >= 1) are handled by mousedown to support drag start
-                                        if (!isDragSelecting && e.detail === 0) {
+                                        // Toggle selection on click
+                                        // On mobile (touch), always toggle; on desktop, only toggle for keyboard clicks
+                                        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+                                        if (isTouchDevice || (!isDragSelecting && e.detail === 0)) {
                                             togglePhotoSelection(photo.id);
                                         }
                                     } else {
@@ -622,48 +623,25 @@ export function Gallery({ alias, onControlsReady }) {
                                 onContextMenu={(e) => handleContextMenu(e, photo)}
                                 // Touch events for mobile
                                 onTouchStart={(e) => {
-                                    const touch = e.touches[0];
-                                    // Store touch start position for tap detection
-                                    e.currentTarget._touchStart = { x: touch.clientX, y: touch.clientY, time: Date.now() };
-
                                     // Clear any existing timer
                                     if (longPressTimerRef.current) {
                                         clearTimeout(longPressTimerRef.current);
                                     }
-                                    if (!isSelectMode) {
+                                    if (isSelectMode) {
+                                        // In select mode, start drag selecting immediately
+                                        handleSelectionMouseDown(photo.id);
+                                    } else {
                                         // Start long press timer to enter select mode
                                         longPressTimerRef.current = setTimeout(() => {
                                             setIsSelectMode(true);
                                             handleSelectionMouseDown(photo.id, true);
-                                            // Mark as long press triggered
-                                            e.currentTarget._longPressTriggered = true;
-                                        }, 500);
-                                    } else {
-                                        // In select mode, prepare for potential drag
-                                        handleSelectionMouseDown(photo.id);
+                                        }, 500); // 500ms for touch long press
                                     }
                                 }}
-                                onTouchEnd={(e) => {
+                                onTouchEnd={() => {
                                     if (longPressTimerRef.current) {
                                         clearTimeout(longPressTimerRef.current);
                                         longPressTimerRef.current = null;
-                                    }
-
-                                    // Check if this was a tap (short press, minimal movement)
-                                    const touchStart = e.currentTarget._touchStart;
-                                    const longPressTriggered = e.currentTarget._longPressTriggered;
-                                    e.currentTarget._longPressTriggered = false;
-
-                                    if (isSelectMode && touchStart && !longPressTriggered) {
-                                        const touch = e.changedTouches[0];
-                                        const dx = Math.abs(touch.clientX - touchStart.x);
-                                        const dy = Math.abs(touch.clientY - touchStart.y);
-                                        const duration = Date.now() - touchStart.time;
-
-                                        // If minimal movement and quick tap, toggle selection
-                                        if (dx < 10 && dy < 10 && duration < 300) {
-                                            togglePhotoSelection(photo.id);
-                                        }
                                     }
                                 }}
                                 onTouchCancel={() => {
@@ -713,12 +691,14 @@ export function Gallery({ alias, onControlsReady }) {
                             transition={{ duration: 0.3 }}
                         >
                             <div
+                                data-photo-id={photo.id}
                                 className={`relative w-full h-[200px] rounded-sm overflow-hidden bg-neutral-100 transition-all duration-300 ease-out cursor-pointer hover:shadow-xl hover:shadow-neutral-900/10 hover:brightness-[1.02] ${isSelectMode && selectedPhotos.has(photo.id) ? 'ring-4 ring-brand-500 ring-offset-2' : ''}`}
                                 onClick={(e) => {
                                     if (isSelectMode) {
-                                        // Only toggle on keyboard click (detail === 0)
-                                        // Mouse clicks (detail >= 1) are handled by mousedown to support drag start
-                                        if (!isDragSelecting && e.detail === 0) {
+                                        // Toggle selection on click
+                                        // On mobile (touch), always toggle; on desktop, only toggle for keyboard clicks
+                                        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+                                        if (isTouchDevice || (!isDragSelecting && e.detail === 0)) {
                                             togglePhotoSelection(photo.id);
                                         }
                                     } else {
@@ -753,6 +733,32 @@ export function Gallery({ alias, onControlsReady }) {
                                 }}
                                 onMouseEnter={() => handleSelectionMouseEnter(photo.id)}
                                 onContextMenu={(e) => handleContextMenu(e, photo)}
+                                // Touch events for mobile
+                                onTouchStart={(e) => {
+                                    if (longPressTimerRef.current) {
+                                        clearTimeout(longPressTimerRef.current);
+                                    }
+                                    if (isSelectMode) {
+                                        handleSelectionMouseDown(photo.id);
+                                    } else {
+                                        longPressTimerRef.current = setTimeout(() => {
+                                            setIsSelectMode(true);
+                                            handleSelectionMouseDown(photo.id, true);
+                                        }, 500);
+                                    }
+                                }}
+                                onTouchEnd={() => {
+                                    if (longPressTimerRef.current) {
+                                        clearTimeout(longPressTimerRef.current);
+                                        longPressTimerRef.current = null;
+                                    }
+                                }}
+                                onTouchCancel={() => {
+                                    if (longPressTimerRef.current) {
+                                        clearTimeout(longPressTimerRef.current);
+                                        longPressTimerRef.current = null;
+                                    }
+                                }}
                             >
                                 <img
                                     src={`/api/v1/thumb?alias=${encodeURIComponent(alias)}&path=${encodeURIComponent(photo.path)}`}
