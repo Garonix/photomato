@@ -34,23 +34,9 @@ export function Header({
     } = galleryControls || {};
 
     return (
-        <header className="h-14 bg-white border-b border-neutral-100 flex items-center px-6 flex-shrink-0 z-40">
-            {/* Left: Logo + Album Capsule */}
+        <header className="h-14 bg-white flex items-center px-6 flex-shrink-0 z-40">
+            {/* Left: Album Capsule */}
             <div className="flex items-center gap-3">
-                {/* Logo Placeholder - Hidden in Settings */}
-                <AnimatePresence>
-                    {!isSettingsOpen && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.8 }}
-                            transition={{ duration: 0.3 }}
-                            className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-red-500 flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0"
-                        >
-                            P
-                        </motion.div>
-                    )}
-                </AnimatePresence>
                 {/* Album Capsule - Hidden in Settings */}
                 <AnimatePresence>
                     {!isSettingsOpen && (
