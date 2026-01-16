@@ -380,30 +380,7 @@ export function Gallery({ alias, onControlsReady }) {
         };
     }, [isDragSelecting]);
 
-    // Handle touch move for drag selection (on the gallery container)
-    const handleTouchMove = (e) => {
-        if (!isSelectMode || !isDragSelecting) return;
 
-        const touch = e.touches[0];
-        const element = document.elementFromPoint(touch.clientX, touch.clientY);
-
-        // Find the photo container by traversing up
-        const photoContainer = element?.closest('[data-photo-id]');
-        if (photoContainer) {
-            const photoId = photoContainer.dataset.photoId;
-            if (photoId) {
-                setSelectedPhotos(prev => {
-                    const newSet = new Set(prev);
-                    if (dragSelectMode === 'select') {
-                        newSet.add(photoId);
-                    } else {
-                        newSet.delete(photoId);
-                    }
-                    return newSet;
-                });
-            }
-        }
-    };
 
     // Exit select mode
     const exitSelectMode = () => {
@@ -475,7 +452,6 @@ export function Gallery({ alias, onControlsReady }) {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            onTouchMove={handleTouchMove}
         >
             {/* Context Menu */}
             {contextMenu && (
@@ -583,10 +559,10 @@ export function Gallery({ alias, onControlsReady }) {
                                 className={`relative rounded-sm overflow-hidden bg-neutral-100 transition-all duration-300 ease-out cursor-pointer hover:shadow-xl hover:shadow-neutral-900/10 hover:-translate-y-1 hover:brightness-[1.02] ${isSelectMode && selectedPhotos.has(photo.id) ? 'ring-4 ring-brand-500 ring-offset-2' : ''}`}
                                 onClick={(e) => {
                                     if (isSelectMode) {
-                                        // Toggle selection on click
-                                        // On mobile (touch), always toggle; on desktop, only toggle for keyboard clicks
-                                        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-                                        if (isTouchDevice || (!isDragSelecting && e.detail === 0)) {
+                                        // Only handle click for touch devices or keyboard (detail===0)
+                                        // Mouse clicks are handled by onMouseDown to support dragging
+                                        const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+                                        if (isTouch || e.detail === 0) {
                                             togglePhotoSelection(photo.id);
                                         }
                                     } else {
@@ -595,6 +571,10 @@ export function Gallery({ alias, onControlsReady }) {
                                 }}
                                 onMouseDown={(e) => {
                                     if (e.button !== 0) return; // Left click only
+                                    // Ignore mousedown on touch devices to prevent conflict with click
+                                    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+                                    if (isTouch) return;
+
                                     if (isSelectMode) {
                                         e.preventDefault();
                                         handleSelectionMouseDown(photo.id);
@@ -628,8 +608,8 @@ export function Gallery({ alias, onControlsReady }) {
                                         clearTimeout(longPressTimerRef.current);
                                     }
                                     if (isSelectMode) {
-                                        // In select mode, start drag selecting immediately
-                                        handleSelectionMouseDown(photo.id);
+                                        // In select mode, do nothing on touch start to allow scrolling
+                                        // Selection is handled by onClick
                                     } else {
                                         // Start long press timer to enter select mode
                                         longPressTimerRef.current = setTimeout(() => {
@@ -693,10 +673,10 @@ export function Gallery({ alias, onControlsReady }) {
                                 className={`relative w-full h-[200px] rounded-sm overflow-hidden bg-neutral-100 transition-all duration-300 ease-out cursor-pointer hover:shadow-xl hover:shadow-neutral-900/10 hover:brightness-[1.02] ${isSelectMode && selectedPhotos.has(photo.id) ? 'ring-4 ring-brand-500 ring-offset-2' : ''}`}
                                 onClick={(e) => {
                                     if (isSelectMode) {
-                                        // Toggle selection on click
-                                        // On mobile (touch), always toggle; on desktop, only toggle for keyboard clicks
-                                        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-                                        if (isTouchDevice || (!isDragSelecting && e.detail === 0)) {
+                                        // Only handle click for touch devices or keyboard (detail===0)
+                                        // Mouse clicks are handled by onMouseDown to support dragging
+                                        const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+                                        if (isTouch || e.detail === 0) {
                                             togglePhotoSelection(photo.id);
                                         }
                                     } else {
@@ -705,6 +685,10 @@ export function Gallery({ alias, onControlsReady }) {
                                 }}
                                 onMouseDown={(e) => {
                                     if (e.button !== 0) return; // Left click only
+                                    // Ignore mousedown on touch devices to prevent conflict with click
+                                    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+                                    if (isTouch) return;
+
                                     if (isSelectMode) {
                                         e.preventDefault();
                                         handleSelectionMouseDown(photo.id);
@@ -737,7 +721,8 @@ export function Gallery({ alias, onControlsReady }) {
                                         clearTimeout(longPressTimerRef.current);
                                     }
                                     if (isSelectMode) {
-                                        handleSelectionMouseDown(photo.id);
+                                        // In select mode, do nothing on touch start to allow scrolling
+                                        // Selection is handled by onClick
                                     } else {
                                         longPressTimerRef.current = setTimeout(() => {
                                             setIsSelectMode(true);
