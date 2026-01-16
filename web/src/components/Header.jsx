@@ -111,40 +111,48 @@ export function Header({
             </div>
 
             {/* Center: Density/Gap Control Group - Hidden in Settings */}
-            {galleryControls && !isSettingsOpen && (
-                <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 group p-1 rounded-full hover:bg-neutral-50 hover:shadow-sm border border-transparent hover:border-neutral-100 transition-all">
-                    {/* Left: Density Slider - Shows on Hover */}
-                    <div className="w-0 overflow-hidden group-hover:w-32 transition-all duration-300 ease-out flex items-center opacity-0 group-hover:opacity-100">
-                        <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={density}
-                            onChange={(e) => onDensityChange?.(parseInt(e.target.value))}
-                            className="w-28 h-1 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-brand-500 focus:outline-none ml-2"
-                        />
-                    </div>
-
-                    {/* Center: Item Count - Trigger */}
-                    <div className="text-neutral-400 text-xs font-mono bg-neutral-100 px-2.5 py-1 rounded-full group-hover:text-brand-600 group-hover:bg-brand-50 transition-colors whitespace-nowrap select-none">
-                        {viewMode === 'grid' ? `${itemsPerPage}/页` : photoCount}
-                    </div>
-
-                    {/* Right: Gap Slider - Shows on Hover (Masonry mode only) */}
-                    {viewMode === 'masonry' && (
+            <AnimatePresence>
+                {galleryControls && !isSettingsOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.6 }}
+                        className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 group p-1 rounded-full hover:bg-neutral-50 hover:shadow-sm border border-transparent hover:border-neutral-100 transition-all"
+                    >
+                        {/* Left: Density Slider - Shows on Hover */}
                         <div className="w-0 overflow-hidden group-hover:w-32 transition-all duration-300 ease-out flex items-center opacity-0 group-hover:opacity-100">
                             <input
                                 type="range"
                                 min="0"
-                                max="32"
-                                value={gap}
-                                onChange={(e) => onGapChange?.(parseInt(e.target.value))}
-                                className="w-28 h-1 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-brand-500 focus:outline-none mr-2"
+                                max="100"
+                                value={density}
+                                onChange={(e) => onDensityChange?.(parseInt(e.target.value))}
+                                className="w-28 h-1 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-brand-500 focus:outline-none ml-2"
                             />
                         </div>
-                    )}
-                </div>
-            )}
+
+                        {/* Center: Item Count - Trigger */}
+                        <div className="text-neutral-400 text-xs font-mono bg-neutral-100 px-2.5 py-1 rounded-full group-hover:text-brand-600 group-hover:bg-brand-50 transition-colors whitespace-nowrap select-none">
+                            {viewMode === 'grid' ? `${itemsPerPage}/页` : photoCount}
+                        </div>
+
+                        {/* Right: Gap Slider - Shows on Hover (Masonry mode only) */}
+                        {viewMode === 'masonry' && (
+                            <div className="w-0 overflow-hidden group-hover:w-32 transition-all duration-300 ease-out flex items-center opacity-0 group-hover:opacity-100">
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="32"
+                                    value={gap}
+                                    onChange={(e) => onGapChange?.(parseInt(e.target.value))}
+                                    className="w-28 h-1 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-brand-500 focus:outline-none mr-2"
+                                />
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Right: Controls + Settings */}
             <div className="ml-auto flex items-center gap-1">
