@@ -44,6 +44,24 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
         });
     };
 
+    const handleDragEnd = (event, info) => {
+        // Only handle swipe if at normal scale
+        if (scale <= 1) {
+            const SWIPE_THRESHOLD = 50;
+            const { offset, velocity } = info;
+
+            if (offset.x > SWIPE_THRESHOLD || velocity.x > 500) {
+                if (hasPrev) onPrev();
+                else imgControls.start({ x: 0, transition: { type: "spring" } }); // Snap back
+            } else if (offset.x < -SWIPE_THRESHOLD || velocity.x < -500) {
+                if (hasNext) onNext();
+                else imgControls.start({ x: 0, transition: { type: "spring" } }); // Snap back
+            } else {
+                imgControls.start({ x: 0, transition: { type: "spring" } }); // Snap back
+            }
+        }
+    };
+
     useEffect(() => {
         window.addEventListener('mousemove', handleMouseMove);
         controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 2000);
@@ -88,35 +106,17 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
             onClick={onClose}
             onWheel={handleWheel}
         >
-            {/* Top Bar (Info & Actions) */}
+            {/* Top Bar (Info Only) */}
             <AnimatePresence>
                 {showControls && (
                     <motion.div
                         initial={{ y: -50, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: -50, opacity: 0 }}
-                        className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start z-50 pointer-events-none"
+                        className="absolute top-0 left-0 right-0 p-6 flex justify-start items-start z-50 pointer-events-none"
                     >
                         <div className="flex flex-col text-neutral-900 pointer-events-auto bg-white/50 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 shadow-sm">
                             <p className="text-xs text-neutral-600 font-medium font-mono tracking-tight">{formattedDate} • {(photo.size / 1024 / 1024).toFixed(2)} MB</p>
-                        </div>
-                        <div className="flex gap-3 pointer-events-auto">
-                            <a
-                                href={downloadUrl}
-                                download={photo.name}
-                                onClick={e => e.stopPropagation()}
-                                className="p-3 rounded-full bg-white/50 hover:bg-white/80 text-neutral-700 transition-colors backdrop-blur-md border border-white/20 shadow-sm"
-                                title="Download"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                            </a>
-                            <button
-                                onClick={e => { e.stopPropagation(); onClose(); }}
-                                className="p-3 rounded-full bg-white/50 hover:bg-red-50 text-neutral-700 hover:text-red-600 transition-colors backdrop-blur-md border border-white/20 shadow-sm"
-                                title="Close"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                            </button>
                         </div>
                     </motion.div>
                 )}
@@ -131,18 +131,18 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: -20, opacity: 0 }}
                             onClick={(e) => { e.stopPropagation(); onPrev(); }}
-                            className="absolute left-6 top-1/2 -translate-y-1/2 p-4 rounded-full bg-white/50 hover:bg-white/80 text-neutral-800 backdrop-blur-md z-50 transition-colors pointer-events-auto shadow-sm border border-white/20"
+                            className="absolute left-2 top-1/2 -translate-y-1/2 p-4 text-neutral-500/50 hover:text-neutral-500 z-50 transition-colors pointer-events-auto active:scale-90"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                         </motion.button>
                         <motion.button
                             initial={{ x: 20, opacity: 0 }}
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: 20, opacity: 0 }}
                             onClick={(e) => { e.stopPropagation(); onNext(); }}
-                            className="absolute right-6 top-1/2 -translate-y-1/2 p-4 rounded-full bg-white/50 hover:bg-white/80 text-neutral-800 backdrop-blur-md z-50 transition-colors pointer-events-auto shadow-sm border border-white/20"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-4 text-neutral-500/50 hover:text-neutral-500 z-50 transition-colors pointer-events-auto active:scale-90"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                         </motion.button>
                     </>
                 )}
@@ -157,10 +157,17 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
                 alt={photo.name}
                 className="max-w-[85vw] max-h-[85vh] object-contain shadow-2xl select-none"
                 onClick={e => e.stopPropagation()}
-                drag={scale > 1}
-                dragMomentum={false} // Disable inertia
-                dragElastic={0}      // Disable bouncing at edges
-                dragConstraints={{ left: -100 * scale, right: 100 * scale, top: -100 * scale, bottom: 100 * scale }}
+                // Drag Logic:
+                // scale > 1: Free drag (pan)
+                // scale <= 1: X-axis drag (swipe)
+                drag={scale > 1 ? true : "x"}
+                onDragEnd={handleDragEnd}
+                dragMomentum={false}
+                dragElastic={scale > 1 ? 0 : 0.2} // Elasticity only for swipe feel
+                dragConstraints={scale > 1
+                    ? { left: -100 * scale, right: 100 * scale, top: -100 * scale, bottom: 100 * scale }
+                    : { left: 0, right: 0 } // Snap point is center, but elastic allows pull
+                }
                 draggable="false"
             />
 
