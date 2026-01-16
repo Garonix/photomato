@@ -37,4 +37,7 @@ type Provider interface {
 
 	// GetFileReader returns a reader for the file content
 	GetFileReader(path string) (io.ReadCloser, error)
+
+	// TotalCount returns total number of photos, or -1 if scanning
+	TotalCount() int
 }

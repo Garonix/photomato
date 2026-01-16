@@ -7,12 +7,21 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	
+	"sync"
+	"time"
+
 	"photomato/internal/thumb"
 )
 
 type LocalProvider struct {
 	RootPath string
+	
+	// Cache
+	mu        sync.RWMutex
+	cache     []Photo
+	cacheTime time.Time
+	scanned   bool
+	scanning  bool
 }
 
 func NewLocalProvider(rootPath string) (*LocalProvider, error) {
@@ -23,13 +32,67 @@ func NewLocalProvider(rootPath string) (*LocalProvider, error) {
 	if !info.IsDir() {
 		return nil, fmt.Errorf("%s is not a directory", rootPath)
 	}
-	return &LocalProvider{RootPath: rootPath}, nil
+	p := &LocalProvider{RootPath: rootPath}
+	
+	// Start async scan
+	go func() {
+		p.refreshCache()
+	}()
+	
+	return p, nil
 }
 
-func (p *LocalProvider) List(cursor string, limit int) ([]Photo, string, error) {
+// invalidateCache clears the cache
+func (p *LocalProvider) invalidateCache() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.cache = nil
+	p.scanned = false
+	p.cacheTime = time.Time{} // zero time
+	
+	// Re-trigger scan
+	go p.refreshCache()
+}
+
+// refreshCache handles locking and scanning
+func (p *LocalProvider) refreshCache() {
+	p.mu.Lock()
+	if p.scanning {
+		p.mu.Unlock()
+		return
+	}
+	p.scanning = true
+	p.mu.Unlock()
+
+	defer func() {
+		p.mu.Lock()
+		p.scanning = false
+		p.mu.Unlock()
+	}()
+
+	photos, err := p.scan()
+	if err != nil {
+		fmt.Printf("Scan failed: %v\n", err)
+		return
+	}
+	
+	p.mu.Lock()
+	// No defer here as we unlock explicitly or just fall through (but defer is safer if panic, 
+	// actually we hold lock for assignment only)
+	p.cache = photos
+	p.cacheTime = time.Now()
+	p.scanned = true
+	p.mu.Unlock()
+	
+	// fmt.Printf("Refreshed cache with %d photos\n", len(photos))
+}
+
+// scan reads the directory and builds the photo list
+// No locking inside scan itself
+func (p *LocalProvider) scan() ([]Photo, error) {
 	entries, err := os.ReadDir(p.RootPath)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	var allPhotos []Photo
@@ -37,7 +100,7 @@ func (p *LocalProvider) List(cursor string, limit int) ([]Photo, string, error) 
 		if entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
 			continue
 		}
-		
+
 		// Filter extensions
 		ext := strings.ToLower(filepath.Ext(entry.Name()))
 		switch ext {
@@ -46,8 +109,11 @@ func (p *LocalProvider) List(cursor string, limit int) ([]Photo, string, error) 
 		default:
 			continue
 		}
-		
-		info, _ := entry.Info()
+
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
 		allPhotos = append(allPhotos, Photo{
 			ID:      entry.Name(),
 			Name:    entry.Name(),
@@ -62,12 +128,37 @@ func (p *LocalProvider) List(cursor string, limit int) ([]Photo, string, error) 
 		return allPhotos[i].ModTime.After(allPhotos[j].ModTime)
 	})
 
-	// TODO: Implement actual efficient pagination instead of memory slicing
-	// For now, simple slicing
+	return allPhotos, nil
+}
+
+func (p *LocalProvider) List(cursor string, limit int) ([]Photo, string, error) {
+	p.mu.RLock()
+	// SWR: If scanned and cache exists, check if we should refresh (older than 20s)
+	// If not scanned, we definitely wait or trigger (New starts it).
+	elapsed := time.Since(p.cacheTime)
+	shouldRefresh := elapsed > 20*time.Second
+	isScanning := p.scanning
+	p.mu.RUnlock()
+
+	if shouldRefresh && !isScanning {
+		go p.refreshCache()
+	}
+
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	
+	// If not scanned yet, return empty list instantly
+	if !p.scanned && p.cache == nil {
+		return []Photo{}, "", nil // Client will see empty list -> 0 count
+	}
+
+	allPhotos := p.cache
+
+	// Efficient pagination on the cached slice
 	start := 0
 	if cursor != "" {
-		for i, p := range allPhotos {
-			if p.ID == cursor {
+		for i, photo := range allPhotos {
+			if photo.ID == cursor {
 				start = i + 1
 				break
 			}
@@ -79,13 +170,27 @@ func (p *LocalProvider) List(cursor string, limit int) ([]Photo, string, error) 
 		end = len(allPhotos)
 	}
 
-	result := allPhotos[start:end]
+	// Important: Copy the slice to avoid race conditions if caller modifies it (though Photo is value type)
+	// But slicing is safe as long as underlying array isn't modified.
+	// Since we replace p.cache entirely on update, the old array is safe to read.
+	result := make([]Photo, end-start)
+	copy(result, allPhotos[start:end])
+
 	nextCursor := ""
-	if end < len(allPhotos) {
+	if end < len(allPhotos) && len(result) > 0 {
 		nextCursor = result[len(result)-1].ID
 	}
 
 	return result, nextCursor, nil
+}
+
+func (p *LocalProvider) TotalCount() int {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	if !p.scanned {
+		return -1 // Indicates scanning
+	}
+	return len(p.cache)
 }
 
 // GetThumbnail generates or retrieves a thumbnail
@@ -104,30 +209,30 @@ func (p *LocalProvider) GetFileReader(path string) (io.ReadCloser, error) {
 }
 
 func (p *LocalProvider) GetOriginalURL(path string) (string, error) {
-	// For local provider, we might just return the path for now, 
-	// but in real API this will likely be a specific API endpoint that streams the file
-	return filepath.Join(p.RootPath, path), nil 
+	return filepath.Join(p.RootPath, path), nil
 }
 
 func (p *LocalProvider) Delete(path string) error {
+	defer p.invalidateCache() // Invalidate cache on change
+
 	fullPath := filepath.Join(p.RootPath, path)
 	return os.Remove(fullPath)
 }
 
 func (p *LocalProvider) Move(src, dest string) error {
-    // dest is relative to provider root
-    // TODO: Cross-provider move needs higher level logic.
-    // Assuming intra-provider move for now if implemented.
-    // For now simple rename
-    fullSrc := filepath.Join(p.RootPath, src)
-    fullDest := filepath.Join(p.RootPath, dest)
-    return os.Rename(fullSrc, fullDest)
+	defer p.invalidateCache() // Invalidate cache on change
+
+	fullSrc := filepath.Join(p.RootPath, src)
+	fullDest := filepath.Join(p.RootPath, dest)
+	return os.Rename(fullSrc, fullDest)
 }
 
 func (p *LocalProvider) Upload(filename string, data io.Reader) (string, error) {
+	defer p.invalidateCache() // Invalidate cache on change
+
 	ext := filepath.Ext(filename)
 	name := strings.TrimSuffix(filename, ext)
-	
+
 	finalName := filename
 	fullPath := filepath.Join(p.RootPath, finalName)
 

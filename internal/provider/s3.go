@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/minio/minio-go/v7"
@@ -20,6 +21,13 @@ type S3Provider struct {
 	Client     *minio.Client
 	BucketName string
 	Prefix     string // Optional prefix/folder within the bucket
+
+	// Cache
+	mu        sync.RWMutex
+	cache     []Photo
+	cacheTime time.Time
+	scanned   bool
+	scanning  bool
 }
 
 type S3ProviderConfig struct {
@@ -54,14 +62,68 @@ func NewS3Provider(cfg S3ProviderConfig) (*S3Provider, error) {
 		return nil, fmt.Errorf("bucket %s does not exist", cfg.Bucket)
 	}
 
-	return &S3Provider{
+	p := &S3Provider{
 		Client:     client,
 		BucketName: cfg.Bucket,
 		Prefix:     cfg.Prefix,
-	}, nil
+	}
+	
+	// Start async scan
+	go func() {
+		p.refreshCache()
+	}()
+
+	return p, nil
 }
 
-func (p *S3Provider) List(cursor string, limit int) ([]Photo, string, error) {
+// invalidateCache clears the cache
+func (p *S3Provider) invalidateCache() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.cache = nil
+	p.scanned = false
+	p.cacheTime = time.Time{} // zero time
+	
+	// Re-trigger scan
+	go p.refreshCache()
+}
+
+// refreshCache handles locking and scanning
+func (p *S3Provider) refreshCache() {
+	p.mu.Lock()
+	if p.scanning {
+		p.mu.Unlock()
+		return
+	}
+	p.scanning = true
+	p.mu.Unlock()
+
+	defer func() {
+		p.mu.Lock()
+		p.scanning = false
+		p.mu.Unlock()
+	}()
+
+	start := time.Now()
+	photos, err := p.scan()
+	if err != nil {
+		fmt.Printf("S3 Scan failed: %v\n", err)
+		return
+	}
+	
+	p.mu.Lock()
+	// No defer here as we unlock explicitly
+	p.cache = photos
+	p.cacheTime = time.Now()
+	p.scanned = true
+	p.mu.Unlock()
+	
+	fmt.Printf("S3 Refreshed %d photos in %v\n", len(photos), time.Since(start))
+}
+
+// scan reads the S3 bucket and builds the photo list
+// Caller must hold the lock if writing to cache
+func (p *S3Provider) scan() ([]Photo, error) {
 	ctx := context.Background()
 
 	prefix := p.Prefix
@@ -79,7 +141,7 @@ func (p *S3Provider) List(cursor string, limit int) ([]Photo, string, error) {
 
 	for object := range objectCh {
 		if object.Err != nil {
-			return nil, "", object.Err
+			return nil, object.Err
 		}
 
 		// Skip "directories" (keys ending with /)
@@ -122,7 +184,33 @@ func (p *S3Provider) List(cursor string, limit int) ([]Photo, string, error) {
 		return allPhotos[i].ModTime.After(allPhotos[j].ModTime)
 	})
 
-	// Cursor-based pagination
+	return allPhotos, nil
+}
+
+func (p *S3Provider) List(cursor string, limit int) ([]Photo, string, error) {
+	p.mu.RLock()
+	// SWR: If scanned and cache exists, check if we should refresh (older than 20s)
+	// If not scanned, we definitely wait or trigger (New starts it).
+	elapsed := time.Since(p.cacheTime)
+	shouldRefresh := elapsed > 20*time.Second
+	isScanning := p.scanning
+	p.mu.RUnlock()
+
+	if shouldRefresh && !isScanning {
+		go p.refreshCache()
+	}
+	
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	// If not scanned yet, return empty list instantly
+	if !p.scanned && p.cache == nil {
+		return []Photo{}, "", nil
+	}
+
+	allPhotos := p.cache
+
+	// Efficient pagination on the cached slice
 	start := 0
 	if cursor != "" {
 		for i, photo := range allPhotos {
@@ -138,13 +226,25 @@ func (p *S3Provider) List(cursor string, limit int) ([]Photo, string, error) {
 		end = len(allPhotos)
 	}
 
-	result := allPhotos[start:end]
+	// Important: Copy the slice to avoid race conditions if caller modifies it
+	result := make([]Photo, end-start)
+	copy(result, allPhotos[start:end])
+
 	nextCursor := ""
 	if end < len(allPhotos) && len(result) > 0 {
 		nextCursor = result[len(result)-1].ID
 	}
 
 	return result, nextCursor, nil
+}
+
+func (p *S3Provider) TotalCount() int {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	if !p.scanned {
+		return -1 // Indicates scanning
+	}
+	return len(p.cache)
 }
 
 func (p *S3Provider) GetThumbnail(path string) (io.Reader, error) {
@@ -196,6 +296,8 @@ func (p *S3Provider) GetOriginalURL(path string) (string, error) {
 }
 
 func (p *S3Provider) Delete(path string) error {
+	defer p.invalidateCache() // Invalidate cache on change
+
 	ctx := context.Background()
 	key := p.buildKey(path)
 
@@ -203,6 +305,8 @@ func (p *S3Provider) Delete(path string) error {
 }
 
 func (p *S3Provider) Move(src, dest string) error {
+	defer p.invalidateCache() // Invalidate cache on change
+
 	ctx := context.Background()
 
 	srcKey := p.buildKey(src)
@@ -225,6 +329,8 @@ func (p *S3Provider) Move(src, dest string) error {
 }
 
 func (p *S3Provider) Upload(filename string, data io.Reader) (string, error) {
+	defer p.invalidateCache() // Invalidate cache on change
+
 	ctx := context.Background()
 
 	ext := filepath.Ext(filename)

@@ -105,8 +105,13 @@ export function Gallery({ alias, onControlsReady }) {
 
     // Photos data
     const allPhotos = data?.pages?.flatMap((page) => page.photos ?? []) ?? [];
+    // Get total count and scanning status from the first page (or any page)
+    const firstPage = data?.pages?.[0];
+    const totalCount = firstPage?.total_count ?? allPhotos.length;
+    const isScanning = firstPage?.is_scanning ?? false;
+
     const itemsPerPage = Math.round(12 + (density / 100) * 48);
-    const totalPages = Math.max(1, Math.ceil(allPhotos.length / itemsPerPage));
+    const totalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage)); // Use totalCount for pagination calculation
 
     useEffect(() => {
         if (currentPage > totalPages) setCurrentPage(totalPages);
@@ -138,7 +143,8 @@ export function Gallery({ alias, onControlsReady }) {
                 viewMode,
                 density,
                 gap,
-                photoCount: allPhotos.length,
+                photoCount: totalCount, // Use totalCount from backend
+                isScanning,             // Pass scanning status
                 itemsPerPage,
                 uploadRotation,
                 onToggleSelectMode: () => isSelectMode ? exitSelectMode() : setIsSelectMode(true),
@@ -156,7 +162,7 @@ export function Gallery({ alias, onControlsReady }) {
                 },
             });
         }
-    }, [onControlsReady, isSelectMode, selectedPhotos.size, viewMode, density, gap, allPhotos.length, itemsPerPage, uploadRotation]);
+    }, [onControlsReady, isSelectMode, selectedPhotos.size, viewMode, density, gap, totalCount, isScanning, itemsPerPage, uploadRotation]);
 
     // Context Menu
     const handleContextMenu = (e, photo) => {

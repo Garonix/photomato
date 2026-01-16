@@ -568,9 +568,17 @@ func (h *Handler) handleGetPhotos(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	totalCount := p.TotalCount()
+	isScanning := totalCount == -1
+	if isScanning {
+		totalCount = 0
+	}
+
 	response := map[string]interface{}{
 		"photos":      photos,
 		"next_cursor": nextCursor,
+		"total_count": totalCount,
+		"is_scanning": isScanning,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
