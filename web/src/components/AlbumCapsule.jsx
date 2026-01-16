@@ -128,7 +128,7 @@ export function AlbumCapsule({ aliases = [], activeAlias, onAliasChange, isMobil
             <button
                 ref={buttonRef}
                 onClick={() => setIsOpen(!isOpen)}
-                className={`flex items-center justify-center rounded-full bg-transparent hover:bg-brand-50/50 border-2 border-brand-500 transition-all duration-200 group cursor-pointer ${isMobile ? 'px-3 py-1.5 w-[100px]' : 'px-4 py-2 w-[140px]'}`}
+                className={`flex items-center justify-center rounded-full bg-transparent hover:bg-brand-50/50 border-brand-500 transition-all duration-200 group cursor-pointer ${isMobile ? 'px-2.5 py-1 w-[90px] border' : 'px-4 py-2 w-[140px] border-2'}`}
             >
                 <div className="relative h-5 overflow-hidden text-center">
                     <AnimatePresence mode="popLayout" initial={false}>
