@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export function AlbumCapsule({ aliases = [], activeAlias, onAliasChange }) {
+export function AlbumCapsule({ aliases = [], activeAlias, onAliasChange, isMobile = false }) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [previewAlias, setPreviewAlias] = useState(activeAlias);
@@ -128,7 +128,7 @@ export function AlbumCapsule({ aliases = [], activeAlias, onAliasChange }) {
             <button
                 ref={buttonRef}
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center justify-center px-4 py-2 rounded-full bg-transparent hover:bg-brand-50/50 border-2 border-brand-500 transition-all duration-200 w-[140px] group cursor-pointer"
+                className={`flex items-center justify-center rounded-full bg-transparent hover:bg-brand-50/50 border-2 border-brand-500 transition-all duration-200 group cursor-pointer ${isMobile ? 'px-3 py-1.5 w-[100px]' : 'px-4 py-2 w-[140px]'}`}
             >
                 <div className="relative h-5 overflow-hidden text-center">
                     <AnimatePresence mode="popLayout" initial={false}>
@@ -138,7 +138,7 @@ export function AlbumCapsule({ aliases = [], activeAlias, onAliasChange }) {
                             animate={{ y: 0, opacity: 1 }}
                             exit={{ y: getDirection() * -20, opacity: 0 }}
                             transition={{ duration: 0.2, ease: 'easeOut' }}
-                            className="block text-sm font-semibold text-brand-600 text-center"
+                            className={`block font-semibold text-brand-600 text-center ${isMobile ? 'text-xs' : 'text-sm'}`}
                             style={{
                                 letterSpacing: '0.05em',
                                 fontFamily: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei UI", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'

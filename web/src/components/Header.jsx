@@ -33,13 +33,19 @@ export function Header({
         onUploadClick,
     } = galleryControls || {};
 
+    // Detect mobile/touch device
+    const isMobile = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
+    // Track if center controls are expanded (for mobile)
+    const [isControlsExpanded, setIsControlsExpanded] = useState(false);
+
     return (
         <header className="h-14 bg-white flex items-center px-6 flex-shrink-0 z-40">
             {/* Left: Album Capsule */}
             <div className="flex items-center gap-3">
                 {/* Album Capsule - Hidden in Settings */}
                 <AnimatePresence>
-                    {!isSettingsOpen && (
+                    {!isSettingsOpen && !(isMobile && isControlsExpanded) && (
                         <motion.div
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -50,6 +56,7 @@ export function Header({
                                 aliases={aliases}
                                 activeAlias={activeAlias}
                                 onAliasChange={onAliasChange}
+                                isMobile={isMobile}
                             />
                         </motion.div>
                     )}
@@ -104,10 +111,10 @@ export function Header({
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.6 }}
-                        className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 group p-1 rounded-full hover:bg-neutral-50 hover:shadow-sm border border-transparent hover:border-neutral-100 transition-all"
+                        className={`absolute left-1/2 -translate-x-1/2 flex items-center gap-2 p-1 rounded-full transition-all ${isMobile ? (isControlsExpanded ? 'bg-neutral-50 shadow-sm border border-neutral-100' : '') : 'group hover:bg-neutral-50 hover:shadow-sm border border-transparent hover:border-neutral-100'}`}
+                        onClick={() => isMobile && setIsControlsExpanded(!isControlsExpanded)}
                     >
-                        {/* Left: Density Slider - Shows on Hover */}
-                        <div className="w-0 overflow-hidden group-hover:w-32 transition-all duration-300 ease-out flex items-center opacity-0 group-hover:opacity-100">
+                        <div className={`w-0 overflow-hidden transition-all duration-300 ease-out flex items-center opacity-0 ${isMobile ? (isControlsExpanded ? 'w-32 opacity-100' : '') : 'group-hover:w-32 group-hover:opacity-100'}`}>
                             <input
                                 type="range"
                                 min="0"
@@ -119,13 +126,12 @@ export function Header({
                         </div>
 
                         {/* Center: Item Count - Trigger */}
-                        <div className="text-neutral-400 text-xs font-mono bg-neutral-100 px-2.5 py-1 rounded-full group-hover:text-brand-600 group-hover:bg-brand-50 transition-colors whitespace-nowrap select-none">
+                        <div className={`text-neutral-400 text-xs font-mono bg-neutral-100 px-2.5 py-1 rounded-full transition-colors whitespace-nowrap select-none ${isMobile ? (isControlsExpanded ? 'text-brand-600 bg-brand-50' : '') : 'group-hover:text-brand-600 group-hover:bg-brand-50'}`}>
                             {viewMode === 'grid' ? `${itemsPerPage}/页` : photoCount}
                         </div>
 
-                        {/* Right: Gap Slider - Shows on Hover (Masonry mode only) */}
                         {viewMode === 'masonry' && (
-                            <div className="w-0 overflow-hidden group-hover:w-32 transition-all duration-300 ease-out flex items-center opacity-0 group-hover:opacity-100">
+                            <div className={`w-0 overflow-hidden transition-all duration-300 ease-out flex items-center opacity-0 ${isMobile ? (isControlsExpanded ? 'w-32 opacity-100' : '') : 'group-hover:w-32 group-hover:opacity-100'}`}>
                                 <input
                                     type="range"
                                     min="0"
@@ -143,7 +149,7 @@ export function Header({
             {/* Right: Controls + Settings */}
             <div className="ml-auto flex items-center gap-1">
                 <AnimatePresence>
-                    {galleryControls && !isSettingsOpen && (
+                    {galleryControls && !isSettingsOpen && !(isMobile && isControlsExpanded) && (
                         <motion.div
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
