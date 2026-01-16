@@ -277,6 +277,9 @@ export function Gallery({ alias, onControlsReady }) {
         return () => window.removeEventListener('paste', handlePaste);
     }, [alias]);
 
+    // Long press timer ref
+    const longPressTimerRef = useRef(null);
+
     // Multi-select toggle
     const togglePhotoSelection = (photoId) => {
         setSelectedPhotos(prev => {
@@ -301,12 +304,18 @@ export function Gallery({ alias, onControlsReady }) {
     };
 
     // Handle drag selection start
-    const handleSelectionMouseDown = (photoId) => {
-        if (!isSelectMode) return;
+    // forceMode: optional, if provided, bypasses isSelectMode check and force sets mode
+    const handleSelectionMouseDown = (photoId, forceMode = false) => {
+        if (!isSelectMode && !forceMode) return;
+
         setIsDragSelecting(true);
         // Determine mode based on first photo's current state
+        // If forceMode is true (long press), we usually want to SELECT (start dragging)
         const isCurrentlySelected = selectedPhotos.has(photoId);
-        const mode = isCurrentlySelected ? 'deselect' : 'select';
+
+        // If forcing, we assume we want to SELECT the item we long-pressed
+        const mode = forceMode ? 'select' : (isCurrentlySelected ? 'deselect' : 'select');
+
         setDragSelectMode(mode);
         // Apply action to first photo
         setSelectedPhotos(prev => {
@@ -532,9 +541,29 @@ export function Gallery({ alias, onControlsReady }) {
                                     }
                                 }}
                                 onMouseDown={(e) => {
-                                    if (isSelectMode && e.button === 0) {
+                                    if (e.button !== 0) return; // Left click only
+                                    if (isSelectMode) {
                                         e.preventDefault();
                                         handleSelectionMouseDown(photo.id);
+                                    } else {
+                                        // Start long press timer
+                                        longPressTimerRef.current = setTimeout(() => {
+                                            setIsSelectMode(true);
+                                            // Force start dragging with this item selected
+                                            handleSelectionMouseDown(photo.id, true);
+                                        }, 1000);
+                                    }
+                                }}
+                                onMouseUp={() => {
+                                    if (longPressTimerRef.current) {
+                                        clearTimeout(longPressTimerRef.current);
+                                        longPressTimerRef.current = null;
+                                    }
+                                }}
+                                onMouseLeave={() => {
+                                    if (longPressTimerRef.current) {
+                                        clearTimeout(longPressTimerRef.current);
+                                        longPressTimerRef.current = null;
                                     }
                                 }}
                                 onMouseEnter={() => handleSelectionMouseEnter(photo.id)}
@@ -593,9 +622,29 @@ export function Gallery({ alias, onControlsReady }) {
                                     }
                                 }}
                                 onMouseDown={(e) => {
-                                    if (isSelectMode && e.button === 0) {
+                                    if (e.button !== 0) return; // Left click only
+                                    if (isSelectMode) {
                                         e.preventDefault();
                                         handleSelectionMouseDown(photo.id);
+                                    } else {
+                                        // Start long press timer
+                                        longPressTimerRef.current = setTimeout(() => {
+                                            setIsSelectMode(true);
+                                            // Force start dragging with this item selected
+                                            handleSelectionMouseDown(photo.id, true);
+                                        }, 1000);
+                                    }
+                                }}
+                                onMouseUp={() => {
+                                    if (longPressTimerRef.current) {
+                                        clearTimeout(longPressTimerRef.current);
+                                        longPressTimerRef.current = null;
+                                    }
+                                }}
+                                onMouseLeave={() => {
+                                    if (longPressTimerRef.current) {
+                                        clearTimeout(longPressTimerRef.current);
+                                        longPressTimerRef.current = null;
                                     }
                                 }}
                                 onMouseEnter={() => handleSelectionMouseEnter(photo.id)}
