@@ -1,16 +1,17 @@
 import { useEffect, useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 
 export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
     const [scale, setScale] = useState(1);
     const [showControls, setShowControls] = useState(true);
     const controlsTimeoutRef = useRef(null);
-    const imgRef = useRef(null);
+    const imgControls = useAnimation();
 
     // Reset scale when photo changes
     useEffect(() => {
         setScale(1);
-    }, [photo.id]);
+        imgControls.start({ opacity: 1, scale: 1, x: 0, y: 0, transition: { duration: 0.3 } });
+    }, [photo.id, imgControls]);
 
     // Handle Mouse Move for auto-hiding
     const handleMouseMove = () => {
@@ -21,6 +22,27 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
         }, 2000);
     };
 
+    // Unified zoom handler
+    const updateScale = (delta) => {
+        setScale(prev => {
+            const newScale = delta > 0
+                ? Math.min(prev + delta, 4)
+                : Math.max(prev + delta, 0.5);
+
+            // Animation logic:
+            // 1. Always animate to new scale
+            // 2. If zooming OUT (delta < 0), force reset position (x=0, y=0)
+            const anim = { scale: newScale };
+            if (delta < 0 || newScale <= 1) {
+                anim.x = 0;
+                anim.y = 0;
+            }
+            imgControls.start(anim);
+
+            return newScale;
+        });
+    };
+
     useEffect(() => {
         window.addEventListener('mousemove', handleMouseMove);
         controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 2000);
@@ -29,9 +51,9 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
             if (e.key === 'Escape') onClose();
             if (e.key === 'ArrowRight') onNext();
             if (e.key === 'ArrowLeft') onPrev();
-            // Zoom shortcut? 
-            if (e.key === '+' || e.key === '=') setScale(p => Math.min(p + 0.5, 4));
-            if (e.key === '-') setScale(p => Math.max(p - 0.5, 0.5));
+            // Zoom shortcut
+            if (e.key === '+' || e.key === '=') updateScale(0.25);
+            if (e.key === '-') updateScale(-0.25);
         };
         window.addEventListener('keydown', handleKeyDown);
 
@@ -40,17 +62,15 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
             window.removeEventListener('keydown', handleKeyDown);
             if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
         };
-    }, [onClose, onNext, onPrev]);
+    }, [onClose, onNext, onPrev, imgControls]);
 
     if (!photo) return null;
 
-    const handleZoomIn = (e) => { e?.stopPropagation(); setScale(p => Math.min(p + 0.5, 4)); };
-    const handleZoomOut = (e) => { e?.stopPropagation(); setScale(p => Math.max(p - 0.5, 0.5)); };
+    const handleZoomIn = (e) => { e?.stopPropagation(); updateScale(0.25); };
+    const handleZoomOut = (e) => { e?.stopPropagation(); updateScale(-0.25); };
+
     const handleWheel = (e) => {
-        if (e.ctrlKey || e.metaKey) { // Pinch-to-zoom mapping often triggers this with ctrl
-            e.preventDefault();
-            // Logic for pinch? For now just simple scroll zoom
-        }
+        if (e.ctrlKey || e.metaKey) { e.preventDefault(); }
         if (e.deltaY < 0) handleZoomIn();
         else handleZoomOut();
     };
@@ -131,7 +151,7 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
             <motion.img
                 key={photo.id} // Re-mount on change for transition
                 initial={{ opacity: 0.5, scale: 0.95 }}
-                animate={{ opacity: 1, scale: scale }}
+                animate={imgControls}
                 exit={{ opacity: 0 }} // Simple fade out
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 src={downloadUrl}
