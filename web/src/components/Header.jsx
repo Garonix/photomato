@@ -133,7 +133,7 @@ export function Header({
                         </div>
 
                         {viewMode === 'masonry' && (
-                            <div className={`w-0 overflow-hidden transition-all duration-300 ease-out flex items-center opacity-0 ${isMobile ? (isControlsExpanded ? 'w-32 opacity-100' : '') : 'group-hover:w-32 group-hover:opacity-100'}`}>
+                            <div className={`w-0 overflow-hidden transition-all duration-300 ease-out flex items-center opacity-0 ${isMobile ? (isControlsExpanded ? 'w-32 opacity-100' : '') : 'group-hover:w-32 group-hover:opacity-100 ml-0 group-hover:ml-1'}`}>
                                 <input
                                     type="range"
                                     min="0"
