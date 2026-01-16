@@ -694,6 +694,44 @@ export function Gallery({ alias, onControlsReady }) {
                 currentAlias={alias}
                 selectedCount={selectedPhotos.size}
             />
+
+            {/* Global Blocking Overlay & Transfer Indicator */}
+            <AnimatePresence>
+                {moveMutation.isPending && (
+                    <div className="fixed inset-0 z-[100] bg-white/50 cursor-wait">
+                        {/* Transfer Indicator - Shows only after delay */}
+                        <TransferIndicator />
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
+    );
+}
+
+function TransferIndicator() {
+    const [show, setShow] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setShow(true), 1000);
+        return () => clearTimeout(timer);
+    }, []);
+
+    if (!show) return null;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className="fixed bottom-6 right-6 bg-white px-6 py-4 rounded-xl shadow-2xl border-2 border-brand-600 flex items-center gap-4 z-[101]"
+        >
+            <div className="relative w-5 h-5">
+                <div className="absolute inset-0 border-2 border-brand-200 rounded-full"></div>
+                <div className="absolute inset-0 border-2 border-brand-600 rounded-full border-t-transparent animate-spin"></div>
+            </div>
+            <div className="flex flex-col">
+                <span className="font-semibold text-neutral-900">传输中...</span>
+                <span className="text-xs text-neutral-500">可能需要一些时间，请耐心等待</span>
+            </div>
+        </motion.div>
     );
 }
