@@ -49,6 +49,9 @@ export function Gallery({ alias, onControlsReady }) {
     // File upload input ref
     const fileInputRef = useRef(null);
 
+    // Infinite scroll sentinel ref
+    const loadMoreRef = useRef(null);
+
     // Density State (1 = Normal, 0.5 = Sparse, 2 = Dense)
     // Slider range: 0 to 100. Persisted to localStorage.
     const [density, setDensity] = useState(() => {
@@ -77,6 +80,26 @@ export function Gallery({ alias, onControlsReady }) {
     useEffect(() => {
         localStorage.setItem('gallery-view-mode', viewMode);
     }, [viewMode]);
+
+    // Infinite scroll: auto-load more when scrolling to bottom in masonry view
+    useEffect(() => {
+        if (viewMode !== 'masonry' || !hasNextPage) return;
+
+        const sentinel = loadMoreRef.current;
+        if (!sentinel) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+                    fetchNextPage();
+                }
+            },
+            { rootMargin: '200px' }
+        );
+
+        observer.observe(sentinel);
+        return () => observer.disconnect();
+    }, [viewMode, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
     // Calculate all photos first (to be used in logic below)
     const allPhotos = data?.pages?.flatMap((page) => page.photos ?? []) ?? [];
@@ -806,17 +829,9 @@ export function Gallery({ alias, onControlsReady }) {
                 </div>
             )}
 
-            {/* Load More for Masonry View */}
-            {viewMode === 'masonry' && hasNextPage && allPhotos.length > 0 && (
-                <div className="mt-16 flex justify-center pb-8">
-                    <button
-                        onClick={() => fetchNextPage()}
-                        disabled={isFetchingNextPage}
-                        className="px-10 py-3 bg-white border border-neutral-200 hover:border-brand-300 text-neutral-600 rounded-full text-sm font-semibold tracking-wide transition-all shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50"
-                    >
-                        {isFetchingNextPage ? '加载中...' : '加载更多'}
-                    </button>
-                </div>
+            {/* Infinite scroll sentinel for Masonry View */}
+            {viewMode === 'masonry' && allPhotos.length > 0 && (
+                <div ref={loadMoreRef} className="w-full h-1" />
             )}
 
             {/* Lightbox with AnimatePresence for exit animation */}
