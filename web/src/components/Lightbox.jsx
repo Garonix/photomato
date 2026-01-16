@@ -10,6 +10,9 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
     const backdropInteractionRef = useRef(false);
     const pointerStartRef = useRef({ x: 0, y: 0 });
 
+    // Detect mobile/touch device
+    const isMobile = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
     // Reset scale when photo changes
     useEffect(() => {
         setScale(1);
@@ -148,7 +151,7 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
         >
             {/* Top Bar (Info Only) */}
             <AnimatePresence>
-                {showControls && (
+                {showControls && !isMobile && (
                     <motion.div
                         initial={{ y: -50, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
@@ -164,7 +167,7 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
 
             {/* Navigation Arrows */}
             <AnimatePresence>
-                {showControls && (
+                {showControls && !isMobile && (
                     <>
                         <motion.button
                             initial={{ x: -20, opacity: 0 }}
@@ -224,7 +227,7 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
 
             {/* Bottom Zoom Controls */}
             <AnimatePresence>
-                {showControls && (
+                {showControls && !isMobile && (
                     <motion.div
                         initial={{ y: 50, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
