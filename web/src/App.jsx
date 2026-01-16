@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAliases } from './api/hooks'
+import { apiClient } from './api/client'
 import { Header } from './components/Header'
 import { Gallery } from './components/Gallery'
 import { Settings } from './components/Settings'
+import { LoginPage } from './components/LoginPage'
 import { ToastProvider } from './components/ui/Toast'
 import { AlertDialogProvider } from './components/ui/AlertDialog'
 
@@ -13,6 +15,24 @@ const queryClient = new QueryClient()
 function AppContent() {
   const [activeAlias, setActiveAlias] = useState(null)
   const [view, setView] = useState('gallery') // 'gallery' | 'settings'
+  const [isAuthenticated, setIsAuthenticated] = useState(null); // null=loading, false=login needed, true=ok
+
+  // Check auth on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data } = await apiClient.get('/auth/check');
+        if (data.authenticated) {
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+        }
+      } catch (e) {
+        setIsAuthenticated(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
   // Gallery controls state (lifted here so Header can access)
   const [galleryControls, setGalleryControls] = useState(null)
@@ -54,6 +74,14 @@ function AppContent() {
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [view]);
+
+  if (isAuthenticated === null) {
+    return <div className="h-screen w-full flex items-center justify-center bg-[#f5f5f7]"></div>;
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage onLoginSuccess={() => setIsAuthenticated(true)} />;
+  }
 
   return (
     <div className="h-screen bg-white text-neutral-900 flex flex-col overflow-hidden font-sans">

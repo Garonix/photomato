@@ -31,19 +31,26 @@ func NewHandler(cfg *config.Config, providers ProviderMap) *Handler {
 
 // RegisterRoutes registers all API routes to the given mux
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /api/v1/aliases", h.handleGetAliases)
-	mux.HandleFunc("GET /api/v1/photos", h.handleGetPhotos)
-	// mux.HandleFunc("POST /api/v1/operate", h.handleOperate)
-	mux.HandleFunc("GET /api/v1/file", h.handleServeFile)
-	mux.HandleFunc("GET /api/v1/thumb", h.handleGetThumbnail)
-	mux.HandleFunc("DELETE /api/v1/photo", h.handleDeletePhoto)
-	mux.HandleFunc("POST /api/v1/upload", h.handleUpload)
-	mux.HandleFunc("POST /api/v1/alias", h.handleAddAlias)
-	mux.HandleFunc("PUT /api/v1/alias", h.handleUpdateAlias)
-	mux.HandleFunc("DELETE /api/v1/alias", h.handleDeleteAlias)
-	mux.HandleFunc("POST /api/v1/cache/clear", h.handleClearCache)
-	mux.HandleFunc("POST /api/v1/s3/test", h.handleTestS3Connection)
-	mux.HandleFunc("POST /api/v1/photos/move", h.handleMovePhotos)
+	// Public Auth Routes
+	mux.HandleFunc("POST /api/v1/auth/login", h.handleLogin)
+	mux.HandleFunc("GET /api/v1/auth/check", h.handleAuthCheck)
+
+	// Protected Routes
+	// We wrap these with AuthMiddleware
+	protect := h.AuthMiddleware
+
+	mux.Handle("GET /api/v1/aliases", protect(http.HandlerFunc(h.handleGetAliases)))
+	mux.Handle("GET /api/v1/photos", protect(http.HandlerFunc(h.handleGetPhotos)))
+	mux.Handle("GET /api/v1/file", protect(http.HandlerFunc(h.handleServeFile)))
+	mux.Handle("GET /api/v1/thumb", protect(http.HandlerFunc(h.handleGetThumbnail)))
+	mux.Handle("DELETE /api/v1/photo", protect(http.HandlerFunc(h.handleDeletePhoto)))
+	mux.Handle("POST /api/v1/upload", protect(http.HandlerFunc(h.handleUpload)))
+	mux.Handle("POST /api/v1/alias", protect(http.HandlerFunc(h.handleAddAlias)))
+	mux.Handle("PUT /api/v1/alias", protect(http.HandlerFunc(h.handleUpdateAlias)))
+	mux.Handle("DELETE /api/v1/alias", protect(http.HandlerFunc(h.handleDeleteAlias)))
+	mux.Handle("POST /api/v1/cache/clear", protect(http.HandlerFunc(h.handleClearCache)))
+	mux.Handle("POST /api/v1/s3/test", protect(http.HandlerFunc(h.handleTestS3Connection)))
+	mux.Handle("POST /api/v1/photos/move", protect(http.HandlerFunc(h.handleMovePhotos)))
 }
 
 func (h *Handler) handleMovePhotos(w http.ResponseWriter, r *http.Request) {
