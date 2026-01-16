@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 
-export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
+export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev, prevPhotoUrl, nextPhotoUrl }) {
     const [scale, setScale] = useState(1);
     const [showControls, setShowControls] = useState(true);
     const controlsTimeoutRef = useRef(null);
@@ -22,6 +22,30 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
 
         imgControls.start({ opacity: 1, scale: 1, transition: { duration: 0.3, ease: "easeOut" } });
     }, [photo.id, imgControls, swipeControls]);
+
+    // Preload adjacent images for smoother navigation
+    useEffect(() => {
+        const preloadImages = [];
+
+        if (prevPhotoUrl) {
+            const prevImg = new Image();
+            prevImg.src = prevPhotoUrl;
+            preloadImages.push(prevImg);
+        }
+
+        if (nextPhotoUrl) {
+            const nextImg = new Image();
+            nextImg.src = nextPhotoUrl;
+            preloadImages.push(nextImg);
+        }
+
+        // Cleanup: abort loading if component unmounts or photo changes
+        return () => {
+            preloadImages.forEach(img => {
+                img.src = '';
+            });
+        };
+    }, [prevPhotoUrl, nextPhotoUrl]);
 
     // Handle Mouse Move for auto-hiding
     const handleMouseMove = () => {

@@ -420,6 +420,12 @@ export function Gallery({ alias, onControlsReady }) {
                         onPrev={handlePrev}
                         hasNext={selectedPhotoIndex + 1 < allPhotos.length}
                         hasPrev={selectedPhotoIndex > 0}
+                        prevPhotoUrl={selectedPhotoIndex > 0
+                            ? `/api/v1/file?alias=${encodeURIComponent(alias)}&path=${encodeURIComponent(allPhotos[selectedPhotoIndex - 1].path)}`
+                            : null}
+                        nextPhotoUrl={selectedPhotoIndex + 1 < allPhotos.length
+                            ? `/api/v1/file?alias=${encodeURIComponent(alias)}&path=${encodeURIComponent(allPhotos[selectedPhotoIndex + 1].path)}`
+                            : null}
                     />
                 )}
             </AnimatePresence>
