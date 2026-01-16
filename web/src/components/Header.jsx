@@ -108,7 +108,7 @@ export function Header({
                     </div>
 
                     {/* Center: Item Count - Trigger */}
-                    <div className="text-neutral-400 text-xs font-mono bg-neutral-100 px-2.5 py-1 rounded-full cursor-col-resize group-hover:text-brand-600 group-hover:bg-brand-50 transition-colors whitespace-nowrap select-none">
+                    <div className="text-neutral-400 text-xs font-mono bg-neutral-100 px-2.5 py-1 rounded-full group-hover:text-brand-600 group-hover:bg-brand-50 transition-colors whitespace-nowrap select-none">
                         {viewMode === 'grid' ? `${itemsPerPage}/页` : photoCount}
                     </div>
 
