@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Masonry from 'react-masonry-css';
 import { motion, AnimatePresence } from 'framer-motion';
-import { usePhotos, useUploadPhoto, useDeletePhoto } from '../api/hooks';
+import { usePhotos, useUploadPhoto, useDeletePhoto, useMovePhotos } from '../api/hooks';
 import { Lightbox } from './Lightbox';
-import { useAlertDialog } from '../components/ui/AlertDialog'; // Import custom alert hook
+import { useAlertDialog } from '../components/ui/AlertDialog';
+import { useToast } from './ui/Toast';
+import { MoveDialog } from './MoveDialog';
 
 // Default breakpoints, will be scaled by density factor
 const baseBreakpoints = {
@@ -20,12 +22,15 @@ export function Gallery({ alias, onControlsReady }) {
     const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } = usePhotos(alias);
     const uploadMutation = useUploadPhoto();
     const deleteMutation = useDeletePhoto();
-    const { confirm } = useAlertDialog(); // Use custom confirm
+    const moveMutation = useMovePhotos();
+    const { confirm } = useAlertDialog();
+    const { addToast } = useToast();
 
     const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
     const [uploadStatus, setUploadStatus] = useState(null);
     const [contextMenu, setContextMenu] = useState(null);
+    const [showMoveDialog, setShowMoveDialog] = useState(false);
 
     // Multi-select mode state
     const [isSelectMode, setIsSelectMode] = useState(false);
@@ -208,7 +213,9 @@ export function Gallery({ alias, onControlsReady }) {
                 }
                 break;
             case 'move':
-                alert("移动功能即将上线");
+                // For single photo move
+                setSelectedPhotos(new Set([photo.id])); // Select just this one
+                setShowMoveDialog(true);
                 break;
         }
         closeContextMenu();
@@ -369,9 +376,28 @@ export function Gallery({ alias, onControlsReady }) {
         }
     };
 
-    // Batch move (placeholder)
+    // Batch move
     const handleBatchMove = () => {
-        alert("移动功能即将上线");
+        if (selectedPhotos.size === 0) return;
+        setShowMoveDialog(true);
+    };
+
+    const handleConfirmMove = async (destAlias) => {
+        const photosToMove = allPhotos.filter(p => selectedPhotos.has(p.id));
+        const paths = photosToMove.map(p => p.path);
+        try {
+            await moveMutation.mutateAsync({
+                alias,
+                paths,
+                destAlias
+            });
+            addToast({ title: "移动成功", type: "success" });
+            exitSelectMode();
+        } catch (e) {
+            addToast({ title: "移动失败", description: "请稍后重试", type: "error" });
+        } finally {
+            setShowMoveDialog(false);
+        }
     };
 
     if (status === 'pending') return <div className="flex justify-center h-64 text-neutral-300 animate-pulse mt-12">Loading...</div>;
@@ -660,6 +686,14 @@ export function Gallery({ alias, onControlsReady }) {
                     />
                 )}
             </AnimatePresence>
+
+            <MoveDialog
+                open={showMoveDialog}
+                onClose={() => setShowMoveDialog(false)}
+                onConfirm={handleConfirmMove}
+                currentAlias={alias}
+                selectedCount={selectedPhotos.size}
+            />
         </div>
     );
 }

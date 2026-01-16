@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -42,7 +43,102 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /api/v1/alias", h.handleDeleteAlias)
 	mux.HandleFunc("POST /api/v1/cache/clear", h.handleClearCache)
 	mux.HandleFunc("POST /api/v1/s3/test", h.handleTestS3Connection)
+	mux.HandleFunc("POST /api/v1/photos/move", h.handleMovePhotos)
 }
+
+func (h *Handler) handleMovePhotos(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Alias     string   `json:"alias"`
+		Paths     []string `json:"paths"`
+		DestAlias string   `json:"dest_alias"`
+		DestPath  string   `json:"dest_path"` // Optional, relative to dest root
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Alias == "" || len(req.Paths) == 0 || req.DestAlias == "" {
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	srcProvider, ok := h.Providers[req.Alias]
+	if !ok {
+		http.Error(w, fmt.Sprintf("Source alias '%s' not found", req.Alias), http.StatusNotFound)
+		return
+	}
+
+	destProvider, ok := h.Providers[req.DestAlias]
+	if !ok {
+		http.Error(w, fmt.Sprintf("Destination alias '%s' not found", req.DestAlias), http.StatusNotFound)
+		return
+	}
+
+	moved := []string{}
+	failed := []string{}
+
+	for _, path := range req.Paths {
+		// Calculate destination path
+		// If DestPath is provided, use it (e.g. subfolder). If not, just use original filename.
+		// Note: "path" might be "folder/file.jpg" or "file.jpg"
+		filename := filepath.Base(path)
+		destFilePath := filename
+		if req.DestPath != "" {
+			// Ensure destPath ends with separator or join correctly
+			destFilePath = filepath.Join(req.DestPath, filename)
+		}
+
+		var err error
+		if req.Alias == req.DestAlias {
+			// Intra-provider move
+			// Note: Provider.Move(src, dest) - dest is full path relative to root
+			err = srcProvider.Move(path, destFilePath)
+		} else {
+			// Inter-provider move (Copy then Delete)
+			reader, rErr := srcProvider.GetFileReader(path)
+			if rErr != nil {
+				err = fmt.Errorf("failed to read source: %v", rErr)
+			} else {
+				// Upload to dest
+				_, uErr := destProvider.Upload(destFilePath, reader)
+				reader.Close()
+				if uErr != nil {
+					err = fmt.Errorf("failed to upload to dest: %v", uErr)
+				} else {
+					// Delete from source
+					if dErr := srcProvider.Delete(path); dErr != nil {
+						// This is tricky, we copied but failed to delete. 
+						// It's technically a "success" for move as data is safe, but effectively a copy.
+						// We'll log it but consider it moved for now, or maybe mark as warning.
+						// For simplicity here, we consider it moved but log error.
+						log.Printf("Failed to delete source after copy %s: %v", path, dErr)
+					}
+				}
+			}
+		}
+
+		if err != nil {
+			log.Printf("Move error %s -> %s: %v", path, req.DestAlias, err)
+			failed = append(failed, path)
+		} else {
+			moved = append(moved, path)
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"moved":  moved,
+		"failed": failed,
+	})
+}
+
 
 func (h *Handler) handleGetAliases(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")

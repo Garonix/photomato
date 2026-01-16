@@ -34,4 +34,7 @@ type Provider interface {
 
 	// Upload saves a file to the provider, handling name conflicts
 	Upload(filename string, data io.Reader) (string, error)
+
+	// GetFileReader returns a reader for the file content
+	GetFileReader(path string) (io.ReadCloser, error)
 }

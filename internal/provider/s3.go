@@ -176,6 +176,12 @@ func (p *S3Provider) GetThumbnail(path string) (io.Reader, error) {
 	return thumb.OpenThumbnail(thumbPath)
 }
 
+func (p *S3Provider) GetFileReader(path string) (io.ReadCloser, error) {
+	ctx := context.Background()
+	key := p.buildKey(path)
+	return p.Client.GetObject(ctx, p.BucketName, key, minio.GetObjectOptions{})
+}
+
 func (p *S3Provider) GetOriginalURL(path string) (string, error) {
 	ctx := context.Background()
 	key := p.buildKey(path)

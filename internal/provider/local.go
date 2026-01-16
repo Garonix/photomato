@@ -98,6 +98,11 @@ func (p *LocalProvider) GetThumbnail(path string) (io.Reader, error) {
 	return os.Open(thumbPath)
 }
 
+func (p *LocalProvider) GetFileReader(path string) (io.ReadCloser, error) {
+	fullPath := filepath.Join(p.RootPath, path)
+	return os.Open(fullPath)
+}
+
 func (p *LocalProvider) GetOriginalURL(path string) (string, error) {
 	// For local provider, we might just return the path for now, 
 	// but in real API this will likely be a specific API endpoint that streams the file

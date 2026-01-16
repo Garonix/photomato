@@ -132,3 +132,24 @@ export const useTestS3Connection = () => {
         }
     });
 };
+
+export const useMovePhotos = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async ({ alias, paths, destAlias, destPath }) => {
+            const { data } = await apiClient.post('/photos/move', {
+                alias,
+                paths,
+                dest_alias: destAlias,
+                dest_path: destPath
+            });
+            return data;
+        },
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['photos', variables.alias] });
+            if (variables.alias !== variables.destAlias) {
+                queryClient.invalidateQueries({ queryKey: ['photos', variables.destAlias] });
+            }
+        }
+    });
+};
