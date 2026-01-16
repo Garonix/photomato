@@ -520,9 +520,11 @@ export function Gallery({ alias, onControlsReady }) {
                         >
                             <div
                                 className={`relative rounded-sm overflow-hidden bg-neutral-100 transition-all duration-300 ease-out cursor-pointer hover:shadow-xl hover:shadow-neutral-900/10 hover:-translate-y-1 hover:brightness-[1.02] ${isSelectMode && selectedPhotos.has(photo.id) ? 'ring-4 ring-brand-500 ring-offset-2' : ''}`}
-                                onClick={() => {
+                                onClick={(e) => {
                                     if (isSelectMode) {
-                                        if (!isDragSelecting) {
+                                        // Only toggle on keyboard click (detail === 0)
+                                        // Mouse clicks (detail >= 1) are handled by mousedown to support drag start
+                                        if (!isDragSelecting && e.detail === 0) {
                                             togglePhotoSelection(photo.id);
                                         }
                                     } else {
@@ -579,9 +581,11 @@ export function Gallery({ alias, onControlsReady }) {
                         >
                             <div
                                 className={`relative w-full h-[200px] rounded-sm overflow-hidden bg-neutral-100 transition-all duration-300 ease-out cursor-pointer hover:shadow-xl hover:shadow-neutral-900/10 hover:brightness-[1.02] ${isSelectMode && selectedPhotos.has(photo.id) ? 'ring-4 ring-brand-500 ring-offset-2' : ''}`}
-                                onClick={() => {
+                                onClick={(e) => {
                                     if (isSelectMode) {
-                                        if (!isDragSelecting) {
+                                        // Only toggle on keyboard click (detail === 0)
+                                        // Mouse clicks (detail >= 1) are handled by mousedown to support drag start
+                                        if (!isDragSelecting && e.detail === 0) {
                                             togglePhotoSelection(photo.id);
                                         }
                                     } else {
