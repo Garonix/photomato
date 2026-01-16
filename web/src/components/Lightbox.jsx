@@ -139,6 +139,8 @@ export function Lightbox({ photo, onClose, onNext, onPrev, hasNext, hasPrev }) {
                 className="max-w-[85vw] max-h-[85vh] object-contain shadow-2xl select-none"
                 onClick={e => e.stopPropagation()}
                 drag={scale > 1}
+                dragMomentum={false} // Disable inertia
+                dragElastic={0}      // Disable bouncing at edges
                 dragConstraints={{ left: -100 * scale, right: 100 * scale, top: -100 * scale, bottom: 100 * scale }}
                 draggable="false"
             />
