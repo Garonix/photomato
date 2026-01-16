@@ -19,6 +19,9 @@ const (
 
 // getPassword returns the configured password from env
 func getPassword() string {
+	if os.Getenv("PHOTOMATO_AUTH_ENABLED") != "true" {
+		return ""
+	}
 	return os.Getenv("PHOTOMATO_PASSWORD")
 }
 

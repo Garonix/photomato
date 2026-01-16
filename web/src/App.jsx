@@ -38,7 +38,7 @@ function AppContent() {
   const [galleryControls, setGalleryControls] = useState(null)
 
   // Fetch aliases
-  const { data: aliases, isLoading: aliasesLoading } = useAliases()
+  const { data: aliases, isLoading: aliasesLoading, refetch: refetchAliases } = useAliases()
 
   // Auto-select first alias if none selected and aliases loaded
   useEffect(() => {
@@ -80,7 +80,12 @@ function AppContent() {
   }
 
   if (!isAuthenticated) {
-    return <LoginPage onLoginSuccess={() => setIsAuthenticated(true)} />;
+    return <LoginPage onLoginSuccess={() => {
+      setIsAuthenticated(true);
+      // Force refetch of aliases now that we are logged in
+      refetchAliases();
+      queryClient.invalidateQueries({ queryKey: ['photos'] });
+    }} />;
   }
 
   return (
