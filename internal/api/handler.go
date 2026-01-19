@@ -51,6 +51,21 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("POST /api/v1/cache/clear", protect(http.HandlerFunc(h.handleClearCache)))
 	mux.Handle("POST /api/v1/s3/test", protect(http.HandlerFunc(h.handleTestS3Connection)))
 	mux.Handle("POST /api/v1/photos/move", protect(http.HandlerFunc(h.handleMovePhotos)))
+
+	// 静态文件服务 (SPA)
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		staticDir := "web/dist"
+
+		// 检查文件是否存在
+		if info, err := http.Dir(staticDir).Open(r.URL.Path); err == nil {
+			info.Close()
+			http.FileServer(http.Dir(staticDir)).ServeHTTP(w, r)
+			return
+		}
+
+		// SPA 回退: 所有其他路径返回 index.html
+		http.ServeFile(w, r, staticDir+"/index.html")
+	})
 }
 
 func (h *Handler) handleMovePhotos(w http.ResponseWriter, r *http.Request) {

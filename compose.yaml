@@ -1,0 +1,10 @@
+services:
+  photomato:
+    image: garonix/photomato
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./app-config.yaml:/app/app-config.yaml:ro
+      - ./photos:/app/photos
+      - ./cache:/app/cache
+    restart: unless-stopped
